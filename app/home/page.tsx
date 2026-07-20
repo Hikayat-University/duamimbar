@@ -4,15 +4,20 @@ import { canEditHome } from "@/lib/permissions";
 import Navbar from "@/components/Navbar";
 import { Card, StatusBadge } from "@/components/ui/Card";
 import NewProjectForm from "./NewProjectForm";
+import HeroHome from "./HeroHome";
 
 export default async function HomePage() {
   const profile = await getUserProfile();
   const proyek = await getSheetRows(process.env.SHEET_ID_PROYEK_PERUSAHAAN!);
   const bisaEdit = profile ? canEditHome(profile.role) : false;
+  const proyekAktif = proyek.filter(
+    (p: any) => p.status !== "Selesai" && p.status !== "Done"
+  ).length;
 
   return (
     <div className="min-h-screen">
       <Navbar nama={profile?.nama ?? ""} />
+      <HeroHome totalProyek={proyek.length} proyekAktif={proyekAktif} />
       <main className="max-w-3xl mx-auto px-5 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
