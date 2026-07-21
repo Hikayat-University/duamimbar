@@ -1,7 +1,7 @@
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 
-export default function Navbar({ nama }: { nama: string }) {
+export default function Navbar({ nama, role }: { nama: string; role?: string }) {
   return (
     <header className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-denim-100">
       <div className="max-w-3xl mx-auto px-5 py-3.5 flex items-center justify-between">
@@ -13,6 +13,11 @@ export default function Navbar({ nama }: { nama: string }) {
           <Link href="/my-page" className="text-denim-900 hover:text-denim-500">
             My Page
           </Link>
+          {role === "head_director" && (
+            <Link href="/admin/users" className="text-denim-900 hover:text-denim-500">
+              Kelola User
+            </Link>
+          )}
           <span className="text-muted hidden sm:inline">{nama}</span>
           <LogoutButton />
         </nav>
