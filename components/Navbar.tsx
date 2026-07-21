@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function Navbar({ nama }: { nama: string }) {
   return (
@@ -13,6 +14,7 @@ export default function Navbar({ nama }: { nama: string }) {
             My Page
           </Link>
           <span className="text-muted hidden sm:inline">{nama}</span>
+          <LogoutButton />
         </nav>
       </div>
     </header>
