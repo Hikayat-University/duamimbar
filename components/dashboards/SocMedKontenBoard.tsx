@@ -35,20 +35,26 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  function load() {
+    function load() {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/socmed/konten").then((res) => res.json()),
       fetch("/api/socmed/kanal").then((res) => res.json()),
       fetch("/api/users/video-editors").then((res) => res.json()),
-    ])
-      .then(([konten, kanal, editors]) => {
-        setList(konten);
-        setKanalList(kanal);
-        setEditorList(editors);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([kontenResult, kanalResult, editorResult]) => {
+      if (kontenResult.status === "fulfilled") setList(kontenResult.value);
+      else console.error("Gagal ambil konten:", kontenResult.reason);
+
+      if (kanalResult.status === "fulfilled") setKanalList(kanalResult.value);
+      else console.error("Gagal ambil kanal:", kanalResult.reason);
+
+      if (editorResult.status === "fulfilled") setEditorList(editorResult.value);
+      else console.error("Gagal ambil daftar editor:", editorResult.reason);
+
+      setLoading(false);
+    });
   }
+
 
   useEffect(load, []);
 
