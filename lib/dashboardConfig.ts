@@ -9,6 +9,11 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_PROYEK_PERUSAHAAN",
     emptyLabel: "Belum ada proyek perusahaan tercatat.",
   },
+  socmed_kanal: {
+    title: "Kanal Social Media",
+    sheetEnvVar: "SHEET_ID_SOCMED_KANAL",
+    emptyLabel: "Belum ada kanal yang digarap.",
+  },
   socmed_overview: {
     title: "Konten Social Media",
     sheetEnvVar: "SHEET_ID_SOCMED_KONTEN",
