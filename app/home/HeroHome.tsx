@@ -35,7 +35,7 @@ export default function HeroHome({
         className="pointer-events-none absolute left-1/2 top-0 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/4 rounded-full opacity-60 blur-3xl"
         style={{
           background:
-            "radial-gradient(circle, rgba(74,108,148,0.55) 0%, rgba(154,182,210,0.25) 45%, transparent 70%)",
+            "radial-gradient(circle, rgba(72,88,170,0.55) 0%, rgba(152,161,207,0.25) 45%, transparent 70%)",
         }}
       />
       <div
