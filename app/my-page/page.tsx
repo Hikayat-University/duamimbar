@@ -6,6 +6,9 @@ import DataTable from "@/components/dashboards/DataTable";
 import VideoEditorBoard from "@/components/dashboards/VideoEditorBoard";
 import BusinessOverviewBoard from "@/components/dashboards/BusinessOverviewBoard";
 import BusinessFlowBoard from "@/components/dashboards/BusinessFlowBoard";
+import CashFlowBoard from "@/components/dashboards/CashFlowBoard";
+import BudgetPlannerBoard from "@/components/dashboards/BudgetPlannerBoard";
+import HutangPiutangBoard from "@/components/dashboards/HutangPiutangBoard";
 
 export default async function MyPage({
   searchParams,
@@ -74,6 +77,12 @@ export default async function MyPage({
               <BusinessOverviewBoard canEdit={active.canEdit} />
             ) : active?.key === "business_flow" ? (
               <BusinessFlowBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_cashflow" ? (
+              <CashFlowBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_budget" ? (
+              <BudgetPlannerBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_hutang" ? (
+              <HutangPiutangBoard canEdit={active.canEdit} />
             ) : (
               <DataTable sheetEnvVar={config.sheetEnvVar} emptyLabel={config.emptyLabel} />
             )}
