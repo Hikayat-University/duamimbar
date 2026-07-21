@@ -15,6 +15,7 @@ export default function SignupPage() {
     role: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -22,35 +23,46 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    const data = await res.json();
+      const data = await res.json().catch(() => ({
+        error: "Server tidak merespons dengan benar. Coba lagi.",
+      }));
 
-    if (!res.ok) {
-      setError(data.error ?? "Terjadi kesalahan. Coba lagi.");
-      setLoading(false);
-      return;
-    }
+      if (!res.ok) {
+        setError(data.error ?? "Terjadi kesalahan. Coba lagi.");
+        setLoading(false);
+        return;
+      }
 
-    // Langsung login setelah akun berhasil dibuat
-    const supabase = createClient();
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
+      setSuccess(true);
 
-    if (loginError) {
-      // Akun berhasil dibuat tapi auto-login gagal — arahkan ke login manual
-      router.push("/login");
-      return;
-    }
+      // Langsung login setelah akun berhasil dibuat
+      const supabase = createClient();
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (loginError) {
+        // Akun berhasil dibuat tapi auto-login gagal — arahkan ke login manual
+        router.push("/login");
+        return;
+      }
 
     router.push("/home");
     router.refresh();
+    } catch (err) {
+      setError(
+        "Tidak bisa terhubung ke server. Cek koneksi internet, lalu coba lagi."
+      );
+      setLoading(false);
+    }
   }
 
   return (
@@ -120,7 +132,19 @@ export default function SignupPage() {
             </p>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-lg bg-denim-50 border border-denim-100 px-3 py-2.5">
+              <p className="text-sm text-denim-700">
+                Akun berhasil dibuat. Mengarahkan ke halaman utama...
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"
