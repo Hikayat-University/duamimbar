@@ -74,3 +74,45 @@ export async function updateSheetRow(
     requestBody: { values: [updatedRow] },
   });
 }
+
+/** Hapus satu baris, dicari berdasarkan nilai di kolom tertentu. */
+export async function deleteSheetRow(sheetId: string, matchColumn: string, matchValue: string) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+
+  // Ambil grid ID sheet (bukan spreadsheetId) — dibutuhkan API untuk hapus baris
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+  const gridId = meta.data.sheets?.[0]?.properties?.sheetId ?? 0;
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "A1:Z1000",
+  });
+  const [header, ...rows] = res.data.values ?? [[]];
+  if (!header) throw new Error("Sheet kosong atau tidak ada header.");
+
+  const matchIndex = header.indexOf(matchColumn);
+  if (matchIndex === -1) throw new Error(`Kolom ${matchColumn} tidak ditemukan.`);
+
+  const rowIndex = rows.findIndex((row) => row[matchIndex] === matchValue);
+  if (rowIndex === -1) throw new Error(`Baris dengan ${matchColumn}=${matchValue} tidak ditemukan.`);
+
+  const startIndex = rowIndex + 1; // +1 karena baris header ada di index 0
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: gridId,
+              dimension: "ROWS",
+              startIndex,
+              endIndex: startIndex + 1,
+            },
+          },
+        },
+      ],
+    },
+  });
+}
