@@ -4,6 +4,8 @@ import { DASHBOARD_CONFIG } from "@/lib/dashboardConfig";
 import Navbar from "@/components/Navbar";
 import DataTable from "@/components/dashboards/DataTable";
 import VideoEditorBoard from "@/components/dashboards/VideoEditorBoard";
+import BusinessOverviewBoard from "@/components/dashboards/BusinessOverviewBoard";
+import BusinessFlowBoard from "@/components/dashboards/BusinessFlowBoard";
 
 export default async function MyPage({
   searchParams,
@@ -68,6 +70,10 @@ export default async function MyPage({
                 currentUserNama={profile.nama}
                 canEditAll={profile.role !== "video_editor" && active.canEdit}
               />
+            ) : active?.key === "business_overview" ? (
+              <BusinessOverviewBoard canEdit={active.canEdit} />
+            ) : active?.key === "business_flow" ? (
+              <BusinessFlowBoard canEdit={active.canEdit} />
             ) : (
               <DataTable sheetEnvVar={config.sheetEnvVar} emptyLabel={config.emptyLabel} />
             )}
