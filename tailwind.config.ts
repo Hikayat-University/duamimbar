@@ -5,14 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Denim blue — warna dominan brand
+        // Denim blue — dikalibrasi persis dari warna logo Duamimbar (#1A2E95)
         denim: {
-          50: "#EEF3F8",
-          100: "#D6E2EE",
-          300: "#9AB6D2",
-          500: "#4A6C94", // primary interaktif
-          700: "#2C4A6E", // primary utama (header, tombol)
-          900: "#1A2634", // teks utama
+          50: "#F1F2F9",
+          100: "#DDE0EF",
+          300: "#98A1CF",
+          500: "#4858AA", // primary interaktif
+          700: "#1A2E95", // primary utama (header, tombol) — sama persis dengan logo
+          900: "#13205F", // teks utama
         },
         // Aksen hangat — supaya tidak terasa robotic/kaku
         gold: {
