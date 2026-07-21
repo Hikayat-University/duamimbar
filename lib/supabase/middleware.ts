@@ -26,10 +26,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Rute publik: tidak butuh login untuk diakses
+  // Rute publik: tidak butuh login untuk diakses.
+  // /api/signup HARUS masuk sini — orang yang lagi daftar belum punya sesi
+  // login, jadi request-nya jangan sampai ikut di-redirect ke /login.
   const isPublic =
     request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup");
+    request.nextUrl.pathname.startsWith("/signup") ||
+    request.nextUrl.pathname.startsWith("/api/signup");
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
