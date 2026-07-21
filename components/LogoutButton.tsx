@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LogoutButton() {
@@ -20,9 +21,11 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="text-denim-900 hover:text-red-600 transition-colors disabled:opacity-50"
+      title="Keluar"
+      className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-denim-900 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
     >
-      {loading ? "Keluar..." : "Keluar"}
+      {loading ? <Loader2 size={19} strokeWidth={1.75} className="animate-spin" /> : <LogOut size={19} strokeWidth={1.75} />}
+      <span className="hidden sm:inline text-xs">Keluar</span>
     </button>
   );
 }
