@@ -8,6 +8,7 @@ type Statistik = {
   id_konten: string;
   minggu_ke: string;
   tanggal_input: string;
+  link_konten: string;
   views: string;
   likes: string;
   reach: string;
@@ -18,6 +19,7 @@ type Konten = { id_konten: string; judul_konten: string };
 const EMPTY_FORM = {
   id_konten: "",
   minggu_ke: "",
+  link_konten: "",
   views: "",
   likes: "",
   reach: "",
@@ -36,15 +38,18 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
 
   function load() {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/socmed/statistik").then((res) => res.json()),
       fetch("/api/socmed/konten").then((res) => res.json()),
-    ])
-      .then(([stat, konten]) => {
-        setList(stat);
-        setKontenList(konten);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([statResult, kontenResult]) => {
+      if (statResult.status === "fulfilled") setList(statResult.value);
+      else console.error("Gagal ambil statistik:", statResult.reason);
+
+      if (kontenResult.status === "fulfilled") setKontenList(kontenResult.value);
+      else console.error("Gagal ambil konten:", kontenResult.reason);
+
+      setLoading(false);
+    });
   }
 
   useEffect(load, []);
@@ -64,6 +69,7 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
     setForm({
       id_konten: s.id_konten,
       minggu_ke: s.minggu_ke,
+      link_konten: s.link_konten,
       views: s.views,
       likes: s.likes,
       reach: s.reach,
@@ -133,6 +139,7 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
               <tr className="border-b border-denim-100 text-left">
                 <th className="px-3 py-2.5 font-medium text-denim-700">Konten</th>
                 <th className="px-3 py-2.5 font-medium text-denim-700">Minggu</th>
+                <th className="px-3 py-2.5 font-medium text-denim-700">Link</th>
                 <th className="px-3 py-2.5 font-medium text-denim-700">Views</th>
                 <th className="px-3 py-2.5 font-medium text-denim-700">Likes</th>
                 <th className="px-3 py-2.5 font-medium text-denim-700">Reach</th>
@@ -145,6 +152,20 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
                 <tr key={s.id_statistik} className="border-b border-denim-100 last:border-0">
                   <td className="px-3 py-2.5 text-xs">{judulKonten(s.id_konten)}</td>
                   <td className="px-3 py-2.5 font-mono text-xs">{s.minggu_ke}</td>
+                  <td className="px-3 py-2.5 text-xs">
+                    {s.link_konten ? (
+                      <a
+                        href={s.link_konten}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-denim-500 underline"
+                      >
+                        Buka
+                      </a>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 font-mono text-xs">{s.views}</td>
                   <td className="px-3 py-2.5 font-mono text-xs">{s.likes}</td>
                   <td className="px-3 py-2.5 font-mono text-xs">{s.reach}</td>
@@ -200,6 +221,13 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
               placeholder="Minggu ke (mis. W29)"
               value={form.minggu_ke}
               onChange={(e) => setForm({ ...form, minggu_ke: e.target.value })}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+            />
+
+            <input
+              placeholder="Link konten yang sudah post (opsional)"
+              value={form.link_konten}
+              onChange={(e) => setForm({ ...form, link_konten: e.target.value })}
               className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
 

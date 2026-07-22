@@ -40,15 +40,18 @@ export default function BusinessFlowBoard({ canEdit }: { canEdit: boolean }) {
 
   function load() {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/business/flow").then((res) => res.json()),
       fetch("/api/business/overview").then((res) => res.json()),
-    ])
-      .then(([flow, bisnis]) => {
-        setList(flow);
-        setBisnisList(bisnis);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([flowResult, bisnisResult]) => {
+      if (flowResult.status === "fulfilled") setList(flowResult.value);
+      else console.error("Gagal ambil flow business:", flowResult.reason);
+
+      if (bisnisResult.status === "fulfilled") setBisnisList(bisnisResult.value);
+      else console.error("Gagal ambil daftar bisnis:", bisnisResult.reason);
+
+      setLoading(false);
+    });
   }
 
   useEffect(load, []);

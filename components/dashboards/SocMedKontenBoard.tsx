@@ -35,7 +35,7 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-    function load() {
+  function load() {
     setLoading(true);
     Promise.allSettled([
       fetch("/api/socmed/konten").then((res) => res.json()),
@@ -54,7 +54,6 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       setLoading(false);
     });
   }
-
 
   useEffect(load, []);
 

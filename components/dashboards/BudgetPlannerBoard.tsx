@@ -34,15 +34,18 @@ export default function BudgetPlannerBoard({ canEdit }: { canEdit: boolean }) {
 
   function load() {
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       fetch("/api/finance/budget").then((res) => res.json()),
       fetch("/api/proyek").then((res) => res.json()),
-    ])
-      .then(([budget, proyek]) => {
-        setList(budget);
-        setProyekList(proyek);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([budgetResult, proyekResult]) => {
+      if (budgetResult.status === "fulfilled") setList(budgetResult.value);
+      else console.error("Gagal ambil budget:", budgetResult.reason);
+
+      if (proyekResult.status === "fulfilled") setProyekList(proyekResult.value);
+      else console.error("Gagal ambil daftar proyek:", proyekResult.reason);
+
+      setLoading(false);
+    });
   }
 
   useEffect(load, []);
