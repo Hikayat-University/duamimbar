@@ -15,16 +15,18 @@ type Proyek = {
   catatan: string;
   last_updated: string;
 };
-type Konten = { id_konten: string; judul_konten: string };
+type Konten = { id_konten: string; judul_konten: string; ditugaskan_oleh: string };
 
 const EMPTY_DETAIL_FORM = { brief: "", link_video_mentah: "", catatan: "" };
 
 export default function VideoEditorBoard({
   currentUserNama,
   canEditAll,
+  filterToOwn,
 }: {
   currentUserNama: string;
   canEditAll: boolean;
+  filterToOwn: boolean;
 }) {
   const [proyekAll, setProyekAll] = useState<Proyek[]>([]);
   const [kontenList, setKontenList] = useState<Konten[]>([]);
@@ -54,15 +56,15 @@ export default function VideoEditorBoard({
 
   useEffect(load, []);
 
-  function judulKonten(id: string) {
-    return kontenList.find((k) => k.id_konten === id)?.judul_konten ?? id;
+  function kontenDetail(id: string) {
+    return kontenList.find((k) => k.id_konten === id);
   }
 
-  // Editor biasa cuma lihat proyek miliknya sendiri. Kadiv lihat semua,
-  // buat keperluan pantau tim.
-  const proyek = canEditAll
-    ? proyekAll
-    : proyekAll.filter((p) => p.nama_editor === currentUserNama);
+  // Hanya video editor yang lihat "punya sendiri" doang. Kadiv (canEditAll)
+  // dan Head Director (view-only) sama-sama lihat semua proyek tim.
+  const proyek = filterToOwn
+    ? proyekAll.filter((p) => p.nama_editor === currentUserNama)
+    : proyekAll;
 
   async function updateStatus(id: string, status: string) {
     setSavingId(id);
@@ -119,11 +121,25 @@ export default function VideoEditorBoard({
     load();
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Yakin mau dihapus?")) return;
+    const res = await fetch("/api/video-editor", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_proyek_editor: id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Gagal menghapus.");
+      return;
+    }
+    load();
+  }
+
   if (loading) {
     return <p className="text-sm text-muted">Memuat proyek...</p>;
   }
 
-  // Overview: total & breakdown per status, dari data yang relevan buat viewer ini.
   const total = proyek.length;
   const statusCounts = STATUS_OPTIONS.map((s) => ({
     status: s,
@@ -154,14 +170,20 @@ export default function VideoEditorBoard({
       ) : (
         <div className="space-y-3">
           {proyek.map((p) => {
+            const konten = kontenDetail(p.id_konten);
             const bisaUbahStatus = canEditAll || p.nama_editor === currentUserNama;
             return (
               <Card key={p.id_proyek_editor}>
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <div>
-                    <p className="font-medium text-denim-900 text-sm">{judulKonten(p.id_konten)}</p>
+                    <p className="font-medium text-denim-900 text-sm">
+                      {konten?.judul_konten ?? p.id_konten}
+                    </p>
                     {canEditAll && (
                       <p className="text-xs text-muted font-mono mb-0.5">{p.nama_editor}</p>
+                    )}
+                    {konten?.ditugaskan_oleh && (
+                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
                     )}
                   </div>
                   {!bisaUbahStatus && <StatusBadge status={p.status} />}
@@ -211,6 +233,14 @@ export default function VideoEditorBoard({
                       className="text-xs text-denim-700 underline"
                     >
                       Edit Brief & Link
+                    </button>
+                  )}
+                  {bisaUbahStatus && (
+                    <button
+                      onClick={() => handleDelete(p.id_proyek_editor)}
+                      className="text-xs text-red-600 underline"
+                    >
+                      Hapus
                     </button>
                   )}
                 </div>
