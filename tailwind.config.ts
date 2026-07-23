@@ -23,9 +23,12 @@ const config: Config = {
         muted: "#6B7A8D",
       },
       fontFamily: {
-        display: ["var(--font-fraunces)", "serif"],
+        // Satu keluarga font — Inter — di semua tempat. Beda "display" / "sans"
+        // / "mono" sekarang cuma beda gaya (weight, tracking), bukan beda
+        // typeface. Lihat .font-display & .font-mono di globals.css.
+        display: ["var(--font-inter)", "sans-serif"],
         sans: ["var(--font-inter)", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        mono: ["var(--font-inter)", "sans-serif"],
       },
       borderRadius: {
         signature: "18px 18px 18px 4px", // sudut asimetris — elemen signature kartu
