@@ -8,6 +8,8 @@
  */
 export const SIGNUP_ROLES = [
   { value: "kadiv_socmed", label: "Kepala Divisi Social Media", divisi: "Social Media" },
+  { value: "script_writer", label: "Script Writer", divisi: "Social Media" },
+  { value: "graphic_designer", label: "Graphic Designer", divisi: "Social Media" },
   { value: "video_editor", label: "Video Editor", divisi: "Video Editor" },
   { value: "kadiv_finance", label: "Kepala Divisi Finance", divisi: "Finance" },
   { value: "kadiv_business", label: "Kepala Divisi Business", divisi: "Business" },

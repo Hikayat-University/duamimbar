@@ -24,6 +24,16 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_SOCMED_STATISTIK",
     emptyLabel: "Belum ada data statistik mingguan.",
   },
+  proyek_script_writer: {
+    title: "Proyek Script Writer",
+    sheetEnvVar: "SHEET_ID_SOCMED_PROYEK_WRITER",
+    emptyLabel: "Belum ada proyek yang di-assign.",
+  },
+  proyek_graphic_designer: {
+    title: "Proyek Graphic Designer",
+    sheetEnvVar: "SHEET_ID_SOCMED_PROYEK_DESIGNER",
+    emptyLabel: "Belum ada proyek yang di-assign.",
+  },
   video_editor: {
     title: "Proyek Video Editor",
     sheetEnvVar: "SHEET_ID_VIDEO_EDITOR_PROYEK",
