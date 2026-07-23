@@ -12,9 +12,13 @@ type Konten = {
   status: string;
   assigned_editor: string;
   tanggal_publish: string;
+  cta: string;
+  referensi_desain: string;
+  gaya_copywriting: string;
+  assigned_script_writer: string;
 };
 type Kanal = { id_kanal: string; nama_kanal: string };
-type Editor = { id: string; nama: string };
+type Person = { id: string; nama: string };
 
 const EMPTY_FORM = {
   id_kanal: "",
@@ -22,12 +26,17 @@ const EMPTY_FORM = {
   status: "Akan",
   assigned_editor: "",
   tanggal_publish: "",
+  cta: "",
+  referensi_desain: "",
+  gaya_copywriting: "",
+  assigned_script_writer: "",
 };
 
 export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   const [list, setList] = useState<Konten[]>([]);
   const [kanalList, setKanalList] = useState<Kanal[]>([]);
-  const [editorList, setEditorList] = useState<Editor[]>([]);
+  const [editorList, setEditorList] = useState<Person[]>([]);
+  const [writerList, setWriterList] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -41,7 +50,8 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       fetch("/api/socmed/konten").then((res) => res.json()),
       fetch("/api/socmed/kanal").then((res) => res.json()),
       fetch("/api/users/video-editors").then((res) => res.json()),
-    ]).then(([kontenResult, kanalResult, editorResult]) => {
+      fetch("/api/users/script-writers").then((res) => res.json()),
+    ]).then(([kontenResult, kanalResult, editorResult, writerResult]) => {
       if (kontenResult.status === "fulfilled") setList(kontenResult.value);
       else console.error("Gagal ambil konten:", kontenResult.reason);
 
@@ -50,6 +60,9 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
 
       if (editorResult.status === "fulfilled") setEditorList(editorResult.value);
       else console.error("Gagal ambil daftar editor:", editorResult.reason);
+
+      if (writerResult.status === "fulfilled") setWriterList(writerResult.value);
+      else console.error("Gagal ambil daftar writer:", writerResult.reason);
 
       setLoading(false);
     });
@@ -75,6 +88,10 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       status: k.status,
       assigned_editor: k.assigned_editor,
       tanggal_publish: k.tanggal_publish,
+      cta: k.cta ?? "",
+      referensi_desain: k.referensi_desain ?? "",
+      gaya_copywriting: k.gaya_copywriting ?? "",
+      assigned_script_writer: k.assigned_script_writer ?? "",
     });
     setFormOpen(true);
   }
@@ -144,8 +161,15 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                 </div>
                 <StatusBadge status={k.status} />
               </div>
+              {k.cta && (
+                <p className="text-sm text-denim-900 mb-1">
+                  <span className="text-xs text-muted">CTA: </span>
+                  {k.cta}
+                </p>
+              )}
               <p className="text-xs text-muted mb-2">
-                Editor: {k.assigned_editor || "belum di-assign"}
+                Writer: {k.assigned_script_writer || "belum di-assign"} · Editor:{" "}
+                {k.assigned_editor || "belum di-assign"}
                 {k.tanggal_publish && ` · Publish: ${k.tanggal_publish}`}
               </p>
               {canEdit && (
@@ -167,10 +191,10 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       )}
 
       {formOpen && (
-        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20">
+        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20 overflow-y-auto">
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3"
+            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3 my-8"
           >
             <h2 className="font-display text-lg text-denim-700">
               {editingId ? "Edit Konten" : "Konten Baru"}
@@ -209,9 +233,52 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
               ))}
             </select>
 
+            <div className="pt-1 border-t border-denim-100">
+              <p className="text-xs font-medium text-denim-700 mt-2 mb-2">
+                Brief untuk Script Writer (opsional)
+              </p>
+              <input
+                placeholder="CTA (Call to Action)"
+                value={form.cta}
+                onChange={(e) => setForm({ ...form, cta: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 mb-2"
+              />
+              <input
+                placeholder="Referensi desain (link, opsional)"
+                value={form.referensi_desain}
+                onChange={(e) => setForm({ ...form, referensi_desain: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 mb-2"
+              />
+              <textarea
+                placeholder="Gaya copywriting yang diinginkan"
+                value={form.gaya_copywriting}
+                onChange={(e) => setForm({ ...form, gaya_copywriting: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+                rows={2}
+              />
+            </div>
+
             <div>
               <label className="text-xs text-muted mb-1 block">
-                Assign ke editor (opsional — otomatis muncul di dashboard editor terkait)
+                Assign ke Script Writer (opsional — otomatis muncul di dashboard writer terkait)
+              </label>
+              <select
+                value={form.assigned_script_writer}
+                onChange={(e) => setForm({ ...form, assigned_script_writer: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+              >
+                <option value="">— Belum di-assign —</option>
+                {writerList.map((w) => (
+                  <option key={w.id} value={w.nama}>
+                    {w.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">
+                Assign ke Video Editor (opsional)
               </label>
               <select
                 value={form.assigned_editor}
