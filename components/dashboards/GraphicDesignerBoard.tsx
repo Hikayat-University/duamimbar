@@ -14,7 +14,8 @@ type Proyek = {
   link_preview: string;
   catatan: string;
 };
-type Konten = { id_konten: string; judul_konten: string };
+type Konten = { id_konten: string; judul_konten: string; ditugaskan_oleh: string };
+type WriterProyek = { id_konten: string; naskah_caption: string; status: string };
 type Designer = { id: string; nama: string };
 
 const EMPTY_ASSIGN_FORM = { id_konten: "", nama_designer: "", brief_desain: "" };
@@ -22,12 +23,15 @@ const EMPTY_ASSIGN_FORM = { id_konten: "", nama_designer: "", brief_desain: "" }
 export default function GraphicDesignerBoard({
   currentUserNama,
   canEditAll,
+  filterToOwn,
 }: {
   currentUserNama: string;
   canEditAll: boolean;
+  filterToOwn: boolean;
 }) {
   const [proyekAll, setProyekAll] = useState<Proyek[]>([]);
   const [kontenList, setKontenList] = useState<Konten[]>([]);
+  const [writerProyekList, setWriterProyekList] = useState<WriterProyek[]>([]);
   const [designerList, setDesignerList] = useState<Designer[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -49,7 +53,8 @@ export default function GraphicDesignerBoard({
       fetch("/api/socmed/proyek-designer").then((res) => res.json()),
       fetch("/api/socmed/konten").then((res) => res.json()),
       fetch("/api/users/graphic-designers").then((res) => res.json()),
-    ]).then(([proyekResult, kontenResult, designerResult]) => {
+      fetch("/api/socmed/proyek-writer").then((res) => res.json()),
+    ]).then(([proyekResult, kontenResult, designerResult, writerResult]) => {
       if (proyekResult.status === "fulfilled") {
         setProyekAll(proyekResult.value);
         const initialLink: Record<string, string> = {};
@@ -65,19 +70,28 @@ export default function GraphicDesignerBoard({
       if (designerResult.status === "fulfilled") setDesignerList(designerResult.value);
       else console.error("Gagal ambil daftar designer:", designerResult.reason);
 
+      // Naskah dari Script Writer — biar designer nggak cuma pegang brief
+      // dari Kadiv doang, tapi juga lihat naskah/caption aslinya.
+      if (writerResult.status === "fulfilled") setWriterProyekList(writerResult.value);
+      else console.error("Gagal ambil naskah writer:", writerResult.reason);
+
       setLoading(false);
     });
   }
 
   useEffect(load, []);
 
-  function judulKonten(id: string) {
-    return kontenList.find((k) => k.id_konten === id)?.judul_konten ?? id;
+  function kontenDetail(id: string) {
+    return kontenList.find((k) => k.id_konten === id);
   }
 
-  const proyek = canEditAll
-    ? proyekAll
-    : proyekAll.filter((p) => p.nama_designer === currentUserNama);
+  function naskahUntuk(idKonten: string) {
+    return writerProyekList.find((w) => w.id_konten === idKonten);
+  }
+
+  const proyek = filterToOwn
+    ? proyekAll.filter((p) => p.nama_designer === currentUserNama)
+    : proyekAll;
 
   async function patchProyek(id: string, updates: Record<string, string>) {
     return fetch("/api/socmed/proyek-designer", {
@@ -156,6 +170,21 @@ export default function GraphicDesignerBoard({
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Yakin mau dihapus?")) return;
+    const res = await fetch("/api/socmed/proyek-designer", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_proyek_designer: id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Gagal menghapus.");
+      return;
+    }
+    load();
+  }
+
   if (loading) return <p className="text-sm text-muted">Memuat proyek...</p>;
 
   const total = proyek.length;
@@ -207,14 +236,21 @@ export default function GraphicDesignerBoard({
       ) : (
         <div className="space-y-3">
           {proyek.map((p) => {
+            const konten = kontenDetail(p.id_konten);
+            const naskah = naskahUntuk(p.id_konten);
             const bisaEdit = canEditAll || p.nama_designer === currentUserNama;
             return (
               <Card key={p.id_proyek_designer}>
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <div>
-                    <p className="font-medium text-denim-900 text-sm">{judulKonten(p.id_konten)}</p>
+                    <p className="font-medium text-denim-900 text-sm">
+                      {konten?.judul_konten ?? p.id_konten}
+                    </p>
                     {canEditAll && (
                       <p className="text-xs text-muted font-mono mb-0.5">{p.nama_designer}</p>
+                    )}
+                    {konten?.ditugaskan_oleh && (
+                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
                     )}
                   </div>
                   {!bisaEdit && <StatusBadge status={p.status} />}
@@ -222,10 +258,26 @@ export default function GraphicDesignerBoard({
 
                 {p.brief_desain && (
                   <p className="text-sm text-denim-900 mb-2 whitespace-pre-wrap">
-                    <span className="text-xs text-muted block mb-0.5">Brief desain:</span>
+                    <span className="text-xs text-muted block mb-0.5">Brief desain (dari Kadiv):</span>
                     {p.brief_desain}
                   </p>
                 )}
+
+                {naskah?.naskah_caption && (
+                  <div className="bg-surface rounded-lg p-3 mb-2">
+                    <p className="text-xs text-muted mb-1">
+                      Naskah & caption dari Script Writer
+                      {naskah.status && naskah.status !== "Disetujui" && (
+                        <span className="ml-1 text-gold-500">(status: {naskah.status})</span>
+                      )}
+                      :
+                    </p>
+                    <p className="text-sm text-denim-900 whitespace-pre-wrap">
+                      {naskah.naskah_caption}
+                    </p>
+                  </div>
+                )}
+
                 {p.catatan && (
                   <p className="text-sm text-gold-500 mb-2">
                     <span className="text-xs">Catatan Kadiv: </span>
@@ -286,6 +338,12 @@ export default function GraphicDesignerBoard({
                           Edit Brief & Catatan
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDelete(p.id_proyek_designer)}
+                        className="text-xs text-red-600 underline"
+                      >
+                        Hapus
+                      </button>
                     </div>
                   </>
                 )}

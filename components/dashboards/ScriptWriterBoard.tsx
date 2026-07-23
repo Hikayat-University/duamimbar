@@ -20,14 +20,17 @@ type Konten = {
   cta: string;
   referensi_desain: string;
   gaya_copywriting: string;
+  ditugaskan_oleh: string;
 };
 
 export default function ScriptWriterBoard({
   currentUserNama,
   canEditAll,
+  filterToOwn,
 }: {
   currentUserNama: string;
   canEditAll: boolean;
+  filterToOwn: boolean;
 }) {
   const [proyekAll, setProyekAll] = useState<Proyek[]>([]);
   const [kontenList, setKontenList] = useState<Konten[]>([]);
@@ -73,9 +76,9 @@ export default function ScriptWriterBoard({
     return kontenList.find((k) => k.id_konten === id);
   }
 
-  const proyek = canEditAll
-    ? proyekAll
-    : proyekAll.filter((p) => p.nama_writer === currentUserNama);
+  const proyek = filterToOwn
+    ? proyekAll.filter((p) => p.nama_writer === currentUserNama)
+    : proyekAll;
 
   async function patchProyek(id: string, updates: Record<string, string>) {
     return fetch("/api/socmed/proyek-writer", {
@@ -134,6 +137,21 @@ export default function ScriptWriterBoard({
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Yakin mau dihapus?")) return;
+    const res = await fetch("/api/socmed/proyek-writer", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_proyek_writer: id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Gagal menghapus.");
+      return;
+    }
+    load();
+  }
+
   if (loading) return <p className="text-sm text-muted">Memuat proyek...</p>;
 
   const total = proyek.length;
@@ -179,6 +197,9 @@ export default function ScriptWriterBoard({
                     </p>
                     {canEditAll && (
                       <p className="text-xs text-muted font-mono mb-0.5">{p.nama_writer}</p>
+                    )}
+                    {konten?.ditugaskan_oleh && (
+                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
                     )}
                   </div>
                   {!bisaEdit && <StatusBadge status={p.status} />}
@@ -271,6 +292,12 @@ export default function ScriptWriterBoard({
                           Beri Catatan
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDelete(p.id_proyek_writer)}
+                        className="text-xs text-red-600 underline"
+                      >
+                        Hapus
+                      </button>
                     </div>
                   </>
                 ) : null}
