@@ -16,6 +16,7 @@ type Konten = {
   referensi_desain: string;
   gaya_copywriting: string;
   assigned_script_writer: string;
+  assigned_graphic_designer: string;
 };
 type Kanal = { id_kanal: string; nama_kanal: string };
 type Person = { id: string; nama: string };
@@ -30,6 +31,7 @@ const EMPTY_FORM = {
   referensi_desain: "",
   gaya_copywriting: "",
   assigned_script_writer: "",
+  assigned_graphic_designer: "",
 };
 
 export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
@@ -37,6 +39,7 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   const [kanalList, setKanalList] = useState<Kanal[]>([]);
   const [editorList, setEditorList] = useState<Person[]>([]);
   const [writerList, setWriterList] = useState<Person[]>([]);
+  const [designerList, setDesignerList] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -51,7 +54,8 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       fetch("/api/socmed/kanal").then((res) => res.json()),
       fetch("/api/users/video-editors").then((res) => res.json()),
       fetch("/api/users/script-writers").then((res) => res.json()),
-    ]).then(([kontenResult, kanalResult, editorResult, writerResult]) => {
+      fetch("/api/users/graphic-designers").then((res) => res.json()),
+    ]).then(([kontenResult, kanalResult, editorResult, writerResult, designerResult]) => {
       if (kontenResult.status === "fulfilled") setList(kontenResult.value);
       else console.error("Gagal ambil konten:", kontenResult.reason);
 
@@ -63,6 +67,9 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
 
       if (writerResult.status === "fulfilled") setWriterList(writerResult.value);
       else console.error("Gagal ambil daftar writer:", writerResult.reason);
+
+      if (designerResult.status === "fulfilled") setDesignerList(designerResult.value);
+      else console.error("Gagal ambil daftar designer:", designerResult.reason);
 
       setLoading(false);
     });
@@ -92,6 +99,7 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       referensi_desain: k.referensi_desain ?? "",
       gaya_copywriting: k.gaya_copywriting ?? "",
       assigned_script_writer: k.assigned_script_writer ?? "",
+      assigned_graphic_designer: k.assigned_graphic_designer ?? "",
     });
     setFormOpen(true);
   }
@@ -168,7 +176,8 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                 </p>
               )}
               <p className="text-xs text-muted mb-2">
-                Writer: {k.assigned_script_writer || "belum di-assign"} · Editor:{" "}
+                Writer: {k.assigned_script_writer || "belum di-assign"} · Designer:{" "}
+                {k.assigned_graphic_designer || "belum di-assign"} · Editor:{" "}
                 {k.assigned_editor || "belum di-assign"}
                 {k.tanggal_publish && ` · Publish: ${k.tanggal_publish}`}
               </p>
@@ -271,6 +280,25 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                 {writerList.map((w) => (
                   <option key={w.id} value={w.nama}>
                     {w.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">
+                Assign ke Graphic Designer (opsional — muncul otomatis di dashboard designer
+                begitu naskah Script Writer masuk status Review)
+              </label>
+              <select
+                value={form.assigned_graphic_designer}
+                onChange={(e) => setForm({ ...form, assigned_graphic_designer: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+              >
+                <option value="">— Belum di-assign —</option>
+                {designerList.map((d) => (
+                  <option key={d.id} value={d.nama}>
+                    {d.nama}
                   </option>
                 ))}
               </select>
