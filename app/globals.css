@@ -3,9 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --font-fraunces: "Fraunces";
   --font-inter: "Inter";
-  --font-mono: "IBM Plex Mono";
 }
 
 * {
@@ -15,4 +13,19 @@
 :focus-visible {
   outline: 2px solid theme("colors.gold.500");
   outline-offset: 2px;
+}
+
+/* Headline / sub-headline — tetap Inter, dibedain lewat bobot & tracking
+   yang lebih tegas, bukan lewat typeface lain. */
+.font-display {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* Data & angka (ID, nominal, timestamp) — tetap Inter, tapi angka jadi
+   tabular (lebar tiap digit sama) biar rapi pas dijejer di tabel, dan
+   sedikit lebih rapat biar kerasa "presisi" tanpa ganti typeface. */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
