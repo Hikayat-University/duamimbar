@@ -4,6 +4,7 @@ import { canEditHome } from "@/lib/permissions";
 import Navbar from "@/components/Navbar";
 import HeroHome from "./HeroHome";
 import ProyekPerusahaanBoard from "./ProyekPerusahaanBoard";
+import OurTeamSection from "./OurTeamSection";
 
 export default async function HomePage() {
   const profile = await getUserProfile();
@@ -19,6 +20,7 @@ export default async function HomePage() {
       <HeroHome totalProyek={proyek.length} proyekAktif={proyekAktif} />
       <main className="max-w-3xl mx-auto px-5 py-8">
         <ProyekPerusahaanBoard canEdit={bisaEdit} />
+        <OurTeamSection />
       </main>
     </div>
   );
