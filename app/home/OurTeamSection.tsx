@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, LayoutGrid, Mail } from "lucide-react";
+import { BadgeCheck, LayoutGrid } from "lucide-react";
 import { getAccessibleDashboards, type Role } from "@/lib/permissions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -33,7 +33,6 @@ const LEADERSHIP_ROLES = new Set(["head_director", "kadiv_socmed", "kadiv_financ
 type TeamMember = {
   id: string;
   nama: string;
-  email: string;
   role: string;
   divisi: string;
   avatar_url: string | null;
@@ -76,55 +75,76 @@ export default function OurTeamSection() {
               m.role as Role,
               m.akses_tambahan ?? []
             ).length;
+            const roleLabel = ROLE_LABELS[m.role] ?? m.role;
 
             return (
-              <div
+              <TeamCard
                 key={m.id}
-                className="rounded-signature overflow-hidden bg-white border border-denim-100 shadow-sm hover:shadow-md transition-shadow"
-              >
-                {/* Foto — full-bleed kalau ada avatar_url, placeholder inisial kalau belum */}
-                <div className="aspect-[4/5] relative overflow-hidden">
-                  {m.avatar_url ? (
-                    <img src={m.avatar_url} alt={m.nama} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-denim-500 to-denim-900">
-                      <span className="font-display text-4xl text-white/90">
-                        {m.nama.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3.5">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <p className="font-display text-sm text-denim-900 truncate">{m.nama}</p>
-                    {LEADERSHIP_ROLES.has(m.role) && (
-                      <BadgeCheck size={13} strokeWidth={2} className="text-gold-500 shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted line-clamp-2 mb-3 leading-snug">
-                    {m.bio || ROLE_LABELS[m.role] || m.role}
-                  </p>
-
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-xs text-denim-700">
-                      <LayoutGrid size={12} strokeWidth={1.75} />
-                      {projectCount}
-                    </span>
-                    <a
-                      href={`mailto:${m.email}`}
-                      title="Kirim email"
-                      className="flex items-center justify-center w-7 h-7 rounded-full bg-denim-50 hover:bg-denim-100 transition-colors"
-                    >
-                      <Mail size={12} strokeWidth={1.75} className="text-denim-700" />
-                    </a>
-                  </div>
-                </div>
-              </div>
+                nama={m.nama}
+                avatarUrl={m.avatar_url}
+                roleLabel={roleLabel}
+                projectCount={projectCount}
+                isLeadership={LEADERSHIP_ROLES.has(m.role)}
+              />
             );
           })}
         </div>
       )}
     </section>
+  );
+}
+
+function TeamCard({
+  nama,
+  avatarUrl,
+  roleLabel,
+  projectCount,
+  isLeadership,
+}: {
+  nama: string;
+  avatarUrl: string | null;
+  roleLabel: string;
+  projectCount: number;
+  isLeadership: boolean;
+}) {
+  const [imgBroken, setImgBroken] = useState(false);
+  const showImage = avatarUrl && !imgBroken;
+
+  return (
+    <div className="relative aspect-[3/4] rounded-signature overflow-hidden bg-denim-700 shadow-sm hover:shadow-md transition-shadow">
+      {/* Foto full-bleed — fallback ke inisial gradient kalau belum ada foto / link rusak */}
+      {showImage ? (
+        <img
+          src={avatarUrl!}
+          alt={nama}
+          onError={() => setImgBroken(true)}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-denim-500 to-denim-900">
+          <span className="font-display text-5xl text-white/90">
+            {nama.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {/* Gradient scrim biar teks kebaca di atas foto apa pun */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+
+      {/* Konten: nama, role, count project */}
+      <div className="absolute bottom-0 left-0 right-0 p-3.5">
+        <div className="flex items-center gap-1 mb-0.5">
+          <p className="font-display text-sm text-white truncate">{nama}</p>
+          {isLeadership && (
+            <BadgeCheck size={13} strokeWidth={2} className="text-gold-400 shrink-0" />
+          )}
+        </div>
+        <p className="text-xs text-white/70 truncate mb-2">{roleLabel}</p>
+        <span className="flex items-center gap-1 text-xs text-white/90 w-fit">
+          <LayoutGrid size={12} strokeWidth={1.75} />
+          {projectCount}
+        </span>
+      </div>
+    </div>
   );
 }
