@@ -24,9 +24,6 @@ export default async function ProfilePage() {
     <div className="min-h-screen">
       <Navbar nama={profile.nama} role={profile.role} />
       <main className="max-w-3xl mx-auto px-5 py-8">
-        <h1 className="font-display text-2xl text-denim-700 mb-1">Profile</h1>
-        <p className="text-muted text-sm mb-6">Info akun & statistik proyekmu</p>
-
         <ProfileEditor
           nama={profile.nama}
           email={profile.email}
@@ -35,6 +32,7 @@ export default async function ProfilePage() {
           avatarUrl={profile.avatar_url ?? ""}
           bio={profile.bio ?? ""}
           projectCount={dashboards.length}
+          createdAt={profile.created_at}
         />
       </main>
     </div>
