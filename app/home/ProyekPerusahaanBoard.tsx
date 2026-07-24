@@ -114,7 +114,7 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl text-denim-700">Proyek Perusahaan</h1>
+          <h1 className="font-display text-2xl text-denim-700">Our Project</h1>
           <p className="text-muted text-sm mt-0.5">
             Semua proyek yang sedang berjalan di seluruh tim.
           </p>
