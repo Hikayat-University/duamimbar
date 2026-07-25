@@ -1,7 +1,9 @@
 import { getUserProfile } from "@/lib/supabase/server";
 import { getAccessibleDashboards } from "@/lib/permissions";
+import { DASHBOARD_CONFIG } from "@/lib/dashboardConfig";
+import { DASHBOARD_ICONS } from "@/lib/dashboardIcons";
+import { Eye, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import ProfileEditor from "./ProfileEditor";
 
 export default async function ProfilePage() {
   const profile = await getUserProfile();
