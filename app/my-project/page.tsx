@@ -16,6 +16,7 @@ import SocMedKontenBoard from "@/components/dashboards/SocMedKontenBoard";
 import SocMedStatistikBoard from "@/components/dashboards/SocMedStatistikBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
+import AdminPostingBoard from "@/components/dashboards/AdminPostingBoard";
 
 export default async function MyPage({
   searchParams,
@@ -97,6 +98,8 @@ export default async function MyPage({
                 }
                 filterToOwn={profile.role === "video_editor"}
               />
+            ) : active?.key === "admin_posting" ? (
+              <AdminPostingBoard canEdit={active.canEdit} />
             ) : active?.key === "proyek_script_writer" ? (
               <ScriptWriterBoard
                 currentUserNama={profile.nama}
