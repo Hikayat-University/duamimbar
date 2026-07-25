@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, StatusBadge } from "@/components/ui/Card";
+import { useEffect, useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { StatusBadge } from "@/components/ui/Card";
 
 const STATUS_OPTIONS = ["Berjalan", "Selesai"];
 
@@ -33,6 +34,12 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollXProgress } = useScroll({ container: scrollRef });
+  // Judul "Our Project" fade + lift begitu gallery mulai di-scroll horizontal
+  const titleOpacity = useTransform(scrollXProgress, [0, 0.12], [1, 0]);
+  const titleY = useTransform(scrollXProgress, [0, 0.12], [0, -24]);
 
   function load() {
     setLoading(true);
@@ -108,43 +115,72 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
     load();
   }
 
-  if (loading) return <p className="text-muted text-sm">Memuat...</p>;
+  const proyekAktif = list.filter((p) => p.status !== "Selesai").length;
+
+  if (loading) return <p className="text-muted text-sm px-1">Memuat...</p>;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl text-denim-700">Our Project</h1>
-          <p className="text-muted text-sm mt-0.5">
-            Semua proyek yang sedang berjalan di seluruh tim.
-          </p>
-        </div>
-        {canEdit && (
-          <button
-            onClick={openNew}
-            className="text-sm bg-denim-700 text-white px-3.5 py-2 rounded-lg hover:bg-denim-500 transition-colors"
-          >
-            + Tambah Proyek
-          </button>
-        )}
-      </div>
-
       {list.length === 0 ? (
-        <p className="text-muted text-sm">
-          Belum ada proyek yang tercatat. {canEdit && "Tambahkan proyek pertama di atas."}
-        </p>
+        <div className="px-1">
+          <h1 className="font-display text-2xl text-denim-700">Our Project</h1>
+          <p className="text-muted text-sm mt-1">
+            Belum ada proyek yang tercatat. {canEdit && "Tambahkan proyek pertama."}
+          </p>
+          {canEdit && (
+            <button
+              onClick={openNew}
+              className="mt-4 text-sm bg-denim-700 text-white px-3.5 py-2 rounded-lg hover:bg-denim-500 transition-colors"
+            >
+              + Tambah Proyek
+            </button>
+          )}
+        </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-3 pl-1 pr-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {/* Judul — sticky nempel kiri, fade+lift begitu gallery discroll */}
+          <motion.div
+            style={{ opacity: titleOpacity, y: titleY }}
+            className="sticky left-0 z-10 flex w-[220px] shrink-0 snap-start flex-col justify-between bg-surface pr-4"
+          >
+            <div>
+              <h1 className="font-display text-3xl text-denim-700 leading-tight">
+                Our
+                <br />
+                Project
+              </h1>
+              <p className="text-muted text-xs mt-3">
+                {proyekAktif} berjalan · {list.length} total
+              </p>
+            </div>
+            {canEdit && (
+              <button
+                onClick={openNew}
+                className="mt-4 w-fit text-sm bg-denim-700 text-white px-3.5 py-2 rounded-lg hover:bg-denim-500 transition-colors"
+              >
+                + Tambah Proyek
+              </button>
+            )}
+          </motion.div>
+
           {list.map((p) => (
-            <Card key={p.id_proyek}>
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <h3 className="font-medium text-denim-900">{p.nama_proyek}</h3>
+            <div
+              key={p.id_proyek}
+              className="w-[260px] shrink-0 snap-start rounded-mega bg-white border border-denim-100 shadow-sm p-5 flex flex-col"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-display text-base text-denim-900 leading-snug">
+                  {p.nama_proyek}
+                </h3>
                 <StatusBadge status={p.status} />
               </div>
-              <p className="text-sm text-muted line-clamp-2 mb-2">{p.deskripsi}</p>
-              <p className="text-xs text-muted font-mono">{p.divisi_terlibat}</p>
+              <p className="text-sm text-muted line-clamp-3 mb-3 flex-1">{p.deskripsi}</p>
+              <p className="text-xs text-muted font-mono mb-3">{p.divisi_terlibat}</p>
               {canEdit && (
-                <div className="flex gap-3 mt-3 pt-3 border-t border-denim-100">
+                <div className="flex gap-3 pt-3 border-t border-denim-100">
                   <button
                     onClick={() => toggleSelesai(p)}
                     className="text-xs text-gold-500 underline"
@@ -162,7 +198,7 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
                   </button>
                 </div>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )}

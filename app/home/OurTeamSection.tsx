@@ -111,7 +111,7 @@ function TeamCard({
   const showImage = avatarUrl && !imgBroken;
 
   return (
-    <div className="relative aspect-[3/4] rounded-signature overflow-hidden bg-denim-700 shadow-sm hover:shadow-md transition-shadow">
+    <div className="relative aspect-[3/4] rounded-mega overflow-hidden bg-denim-700 shadow-sm hover:shadow-md transition-shadow">
       {/* Foto full-bleed — fallback ke inisial gradient kalau belum ada foto / link rusak */}
       {showImage ? (
         <img
