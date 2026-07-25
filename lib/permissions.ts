@@ -15,6 +15,7 @@ export type DashboardKey =
   | "proyek_script_writer"
   | "proyek_graphic_designer"
   | "video_editor"
+  | "admin_posting"
   | "finance_cashflow"
   | "finance_budget"
   | "finance_hutang"
@@ -25,7 +26,7 @@ export type DashboardKey =
 const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
   head_director: ["directors_overview"],
   kadiv_socmed: ["socmed_kanal", "socmed_overview", "socmed_statistik"],
-  script_writer: ["proyek_script_writer"],
+  script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
   video_editor: ["video_editor"],
   kadiv_finance: ["finance_cashflow", "finance_budget", "finance_hutang"],
@@ -50,6 +51,7 @@ export function getAccessibleDashboards(
       "proyek_script_writer",
       "proyek_graphic_designer",
       "video_editor",
+      "admin_posting",
       "finance_cashflow",
       "finance_budget",
       "finance_hutang",
@@ -71,6 +73,9 @@ export function getAccessibleDashboards(
   }
   if (aksesTambahan.includes("graphic_designer_dashboard")) {
     tambahan.push({ key: "proyek_graphic_designer", canEdit: true });
+  }
+  if (aksesTambahan.includes("admin_posting_dashboard")) {
+    tambahan.push({ key: "admin_posting", canEdit: true });
   }
   if (aksesTambahan.includes("business_overview_dashboard")) {
     tambahan.push({ key: "business_overview", canEdit: true });

@@ -39,6 +39,11 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_VIDEO_EDITOR_PROYEK",
     emptyLabel: "Belum ada proyek yang di-assign.",
   },
+  admin_posting: {
+    title: "Admin — Siap Post",
+    sheetEnvVar: "SHEET_ID_SOCMED_KONTEN",
+    emptyLabel: "Belum ada konten yang siap diposting.",
+  },
   finance_cashflow: {
     title: "Cash Flow",
     sheetEnvVar: "SHEET_ID_FINANCE_CASHFLOW",
