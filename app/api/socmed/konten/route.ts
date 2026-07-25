@@ -35,6 +35,23 @@ async function requireKadivSocmed() {
 }
 
 /**
+ * Khusus buat PATCH: selain Kadiv SocMed (full akses), Script Writer juga
+ * boleh lewat — TAPI cuma kalau field yang diubah cuma "status" doang. Ini
+ * dipakai tombol "Tandai Sudah Diposting" di dashboard Admin, bukan buat
+ * edit konten secara umum (itu tetap khusus Kadiv SocMed).
+ */
+async function requireCanPatchKonten(updateKeys: string[]) {
+  const profile = await getUserProfile();
+  if (!profile) return { profile: null, error: "Belum login." as const };
+  if (profile.role === "kadiv_socmed") return { profile, error: null };
+  const isStatusOnlyUpdate = updateKeys.length === 1 && updateKeys[0] === "status";
+  if (profile.role === "script_writer" && isStatusOnlyUpdate) {
+    return { profile, error: null };
+  }
+  return { profile: null, error: "Tidak punya akses." as const };
+}
+
+/**
  * Sinkronkan assignment ke sheet Proyek Editor, supaya video editor langsung
  * lihat tugasnya tanpa Kadiv SocMed harus assign dua kali di tempat berbeda.
  * Urutan kolom: id_proyek_editor, id_konten, nama_editor, status, brief,
@@ -112,15 +129,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { profile, error } = await requireKadivSocmed();
-  if (error || !profile) return NextResponse.json({ error }, { status: 403 });
-
   const { id_konten, ...updates } = await req.json();
   if (!id_konten) return NextResponse.json({ error: "id_konten wajib diisi." }, { status: 400 });
 
+  const { profile, error } = await requireCanPatchKonten(Object.keys(updates));
+  if (error || !profile) return NextResponse.json({ error }, { status: 403 });
+
   await updateSheetRow(SHEET_ID, "id_konten", id_konten, {
     ...updates,
-    ditugaskan_oleh: profile.nama,
+    // "ditugaskan_oleh" nyimpen siapa Kadiv yang assign — jangan ketimpa
+    // pas ini cuma Script Writer nandain status "Sudah" diposting.
+    ...(profile.role === "kadiv_socmed" ? { ditugaskan_oleh: profile.nama } : {}),
   });
 
   if (updates.assigned_editor) await syncEditorAssignment(id_konten, updates.assigned_editor);
