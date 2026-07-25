@@ -14,8 +14,6 @@ export default async function HomePage() {
       <Navbar nama={profile?.nama ?? ""} role={profile?.role} />
       <HeroHome />
 
-      {/* Gallery proyek full-width — sengaja di luar max-w-3xl biar horizontal
-          scroll-nya punya ruang, bukan kejepit container sempit. */}
       <div className="mt-10 pl-5 sm:pl-8 lg:pl-[calc((100vw-48rem)/2+1.25rem)]">
         <ProyekPerusahaanBoard canEdit={bisaEdit} />
       </div>
