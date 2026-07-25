@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import { StatusBadge } from "@/components/ui/Card";
 
 const STATUS_OPTIONS = ["Berjalan", "Selesai"];
@@ -36,10 +35,26 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
   const [saving, setSaving] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { scrollXProgress } = useScroll({ container: scrollRef });
-  // Judul "Our Project" fade + lift begitu gallery mulai di-scroll horizontal
-  const titleOpacity = useTransform(scrollXProgress, [0, 0.12], [1, 0]);
-  const titleY = useTransform(scrollXProgress, [0, 0.12], [0, -24]);
+  // Progress 0→1 buat fade+lift judul "Our Project". Dihitung manual (bukan
+  // framer useScroll) supaya nggak error pas konten belum butuh discroll
+  // (scrollWidth === clientWidth) — kasus itu bikin useScroll pecah dan
+  // seluruh title block ikut nggak kerender.
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    function onScroll() {
+      const max = el!.scrollWidth - el!.clientWidth;
+      setScrollProgress(max > 0 ? Math.min(1, el!.scrollLeft / max) : 0);
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [list.length]);
+
+  // Fade+lift cepat di 12% pertama scroll, lalu tetap hilang
+  const titleOpacity = Math.max(0, 1 - scrollProgress / 0.12);
+  const titleY = -24 * Math.min(1, scrollProgress / 0.12);
 
   function load() {
     setLoading(true);
@@ -142,8 +157,8 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
           className="flex gap-4 overflow-x-auto pb-3 pl-1 pr-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {/* Judul — sticky nempel kiri, fade+lift begitu gallery discroll */}
-          <motion.div
-            style={{ opacity: titleOpacity, y: titleY }}
+          <div
+            style={{ opacity: titleOpacity, transform: `translateY(${titleY}px)` }}
             className="sticky left-0 z-10 flex w-[220px] shrink-0 snap-start flex-col justify-between bg-surface pr-4"
           >
             <div>
@@ -164,7 +179,7 @@ export default function ProyekPerusahaanBoard({ canEdit }: { canEdit: boolean })
                 + Tambah Proyek
               </button>
             )}
-          </motion.div>
+          </div>
 
           {list.map((p) => (
             <div
