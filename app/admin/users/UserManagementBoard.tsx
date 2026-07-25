@@ -22,6 +22,7 @@ const AKSES_TAMBAHAN_OPTIONS = [
   { value: "video_editor_dashboard", label: "Dashboard Video Editor (biasanya Kadiv SocMed)" },
   { value: "script_writer_dashboard", label: "Dashboard Script Writer (biasanya Kadiv SocMed)" },
   { value: "graphic_designer_dashboard", label: "Dashboard Graphic Designer (biasanya Kadiv SocMed)" },
+  { value: "admin_posting_dashboard", label: "Dashboard Admin — Siap Post (antrian posting)" },
   { value: "business_overview_dashboard", label: "Business Overview" },
   { value: "flow_business_dashboard", label: "Flow Business (view + komentar)" },
   { value: "budget_planner_dashboard", label: "Budget Planner (biasanya Kadiv Business)" },
