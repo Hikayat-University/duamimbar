@@ -32,6 +32,7 @@ const config: Config = {
       },
       borderRadius: {
         signature: "18px 18px 18px 4px", // sudut asimetris — elemen signature kartu
+        mega: "40px", // sudut sangat melengkung — hero & gallery card baru di Home
       },
     },
   },
