@@ -23,7 +23,7 @@ export default async function ProfilePage() {
   return (
     <div className="min-h-screen">
       <Navbar nama={profile.nama} role={profile.role} />
-      <main className="max-w-3xl mx-auto px-5 py-8">
+      <main className="max-w-3xl mx-auto px-5 pt-24 pb-8">
         <ProfileEditor
           nama={profile.nama}
           email={profile.email}
