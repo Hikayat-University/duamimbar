@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, StatusBadge } from "@/components/ui/Card";
 
-const STATUS_OPTIONS = ["Akan", "Sedang", "Sudah"];
+const STATUS_OPTIONS = ["Akan", "Sedang", "Siap Post", "Sudah"];
 
 type Konten = {
   id_konten: string;
