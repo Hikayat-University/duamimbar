@@ -49,7 +49,12 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="text-sm text-denim-900 mb-1 block">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm text-denim-900 block">Password</label>
+              <Link href="/forgot-password" className="text-xs text-denim-500 underline">
+                Lupa password?
+              </Link>
+            </div>
             <input
               type="password"
               required
