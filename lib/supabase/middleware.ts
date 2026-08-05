@@ -29,10 +29,14 @@ export async function updateSession(request: NextRequest) {
   // Rute publik: tidak butuh login untuk diakses.
   // /api/signup HARUS masuk sini — orang yang lagi daftar belum punya sesi
   // login, jadi request-nya jangan sampai ikut di-redirect ke /login.
+  // /forgot-password & /reset-password juga publik — orang yang lupa
+  // password otomatis nggak punya sesi login yang valid.
   const isPublic =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
-    request.nextUrl.pathname.startsWith("/api/signup");
+    request.nextUrl.pathname.startsWith("/api/signup") ||
+    request.nextUrl.pathname.startsWith("/forgot-password") ||
+    request.nextUrl.pathname.startsWith("/reset-password");
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
