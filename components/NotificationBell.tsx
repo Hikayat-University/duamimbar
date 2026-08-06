@@ -54,6 +54,19 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    // Badge angka merah di icon app (kayak WhatsApp) — cuma jalan kalau app
+    // udah di-"Add to Home Screen" & browsernya dukung Badging API (Safari
+    // iOS 16.4+, Chrome/Edge Android & desktop). Di browser biasa (tab web
+    // normal) API ini nggak ada, jadi dibungkus pengecekan supaya aman.
+    if (!("setAppBadge" in navigator)) return;
+    if (unreadCount > 0) {
+      (navigator as any).setAppBadge(unreadCount).catch(() => {});
+    } else {
+      (navigator as any).clearAppBadge().catch(() => {});
+    }
+  }, [unreadCount]);
+
   async function handleNotifClick(n: Notif) {
     if (!n.is_read) {
       setNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
