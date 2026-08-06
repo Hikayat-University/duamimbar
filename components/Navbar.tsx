@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { House, LayoutGrid, User, Users } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
+import NotificationBell from "@/components/NotificationBell";
 
 /**
  * Navbar mengambang — fixed di atas, pill rounded-full, kaca semi-transparan
@@ -52,6 +53,7 @@ export default function Navbar({ nama, role }: { nama: string; role?: string }) 
               </Link>
             )}
             <span className="mx-1 hidden text-xs text-muted md:inline">{nama}</span>
+            <NotificationBell />
             <LogoutButton />
           </nav>
         </div>
