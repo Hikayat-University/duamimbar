@@ -13,6 +13,12 @@ type Statistik = {
   likes: string;
   reach: string;
   engagement_rate: string;
+  comments: string;
+  reposts: string;
+  shares: string;
+  saves: string;
+  follows: string;
+  external_link_taps: string;
 };
 type Konten = { id_konten: string; judul_konten: string };
 
@@ -23,8 +29,33 @@ const EMPTY_FORM = {
   views: "",
   likes: "",
   reach: "",
-  engagement_rate: "",
+  comments: "",
+  reposts: "",
+  shares: "",
+  saves: "",
+  follows: "",
+  external_link_taps: "",
 };
+
+/**
+ * Engagement rate dihitung otomatis, bukan diketik manual:
+ *   (Likes + Komentar + Repost + Share + Save) / Reach x 100
+ * Follow & klik link eksternal SENGAJA nggak dimasukin ke rumus ini —
+ * itu metrik konversi terpisah, bukan bagian standar "engagement" di
+ * kebanyakan laporan social media. Kalau timnya mau rumus beda, tinggal
+ * bilang, gampang disesuaikan di satu tempat ini aja.
+ */
+function hitungEngagementRate(f: typeof EMPTY_FORM): string {
+  const reach = parseFloat(f.reach) || 0;
+  if (reach <= 0) return "-";
+  const interaksi =
+    (parseFloat(f.likes) || 0) +
+    (parseFloat(f.comments) || 0) +
+    (parseFloat(f.reposts) || 0) +
+    (parseFloat(f.shares) || 0) +
+    (parseFloat(f.saves) || 0);
+  return `${((interaksi / reach) * 100).toFixed(2)}%`;
+}
 
 export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) {
   const [list, setList] = useState<Statistik[]>([]);
@@ -73,7 +104,12 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
       views: s.views,
       likes: s.likes,
       reach: s.reach,
-      engagement_rate: s.engagement_rate,
+      comments: s.comments ?? "",
+      reposts: s.reposts ?? "",
+      shares: s.shares ?? "",
+      saves: s.saves ?? "",
+      follows: s.follows ?? "",
+      external_link_taps: s.external_link_taps ?? "",
     });
     setFormOpen(true);
   }
@@ -83,10 +119,12 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
     setSaving(true);
     setError(null);
 
+    const payload = { ...form, engagement_rate: hitungEngagementRate(form) };
+
     const res = await fetch("/api/socmed/statistik", {
       method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editingId ? { id_statistik: editingId, ...form } : form),
+      body: JSON.stringify(editingId ? { id_statistik: editingId, ...payload } : payload),
     });
 
     if (!res.ok) {
@@ -133,71 +171,66 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
       {list.length === 0 ? (
         <p className="text-sm text-muted">Belum ada data statistik mingguan.</p>
       ) : (
-        <div className="overflow-x-auto rounded-signature border border-denim-100 bg-white">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-denim-100 text-left">
-                <th className="px-3 py-2.5 font-medium text-denim-700">Konten</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Minggu</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Link</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Views</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Likes</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Reach</th>
-                <th className="px-3 py-2.5 font-medium text-denim-700">Engagement</th>
-                {canEdit && <th className="px-3 py-2.5"></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((s) => (
-                <tr key={s.id_statistik} className="border-b border-denim-100 last:border-0">
-                  <td className="px-3 py-2.5 text-xs">{judulKonten(s.id_konten)}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{s.minggu_ke}</td>
-                  <td className="px-3 py-2.5 text-xs">
-                    {s.link_konten ? (
-                      <a
-                        href={s.link_konten}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-denim-500 underline"
-                      >
-                        Buka
-                      </a>
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{s.views}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{s.likes}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{s.reach}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{s.engagement_rate}</td>
-                  {canEdit && (
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <button
-                        onClick={() => openEdit(s)}
-                        className="text-xs text-denim-700 underline mr-2"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(s.id_statistik)}
-                        className="text-xs text-red-600 underline"
-                      >
-                        Hapus
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {list.map((s) => (
+            <Card key={s.id_statistik}>
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div>
+                  <p className="font-medium text-denim-900 text-sm">{judulKonten(s.id_konten)}</p>
+                  <p className="text-xs text-muted font-mono">{s.minggu_ke}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-lg text-denim-700">{s.engagement_rate || "-"}</p>
+                  <p className="text-[10px] text-muted -mt-0.5">Engagement</p>
+                </div>
+              </div>
+
+              {s.link_konten && (
+                <a
+                  href={s.link_konten}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-denim-500 underline block mb-2"
+                >
+                  Buka konten
+                </a>
+              )}
+
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-1.5 text-xs font-mono text-denim-900 mb-2">
+                <p>Views: {s.views || 0}</p>
+                <p>Likes: {s.likes || 0}</p>
+                <p>Reach: {s.reach || 0}</p>
+                <p>Komentar: {s.comments || 0}</p>
+                <p>Repost: {s.reposts || 0}</p>
+                <p>Share: {s.shares || 0}</p>
+                <p>Save: {s.saves || 0}</p>
+                <p>Follow: {s.follows || 0}</p>
+                <p>Klik Link: {s.external_link_taps || 0}</p>
+              </div>
+
+              {canEdit && (
+                <div className="flex gap-3 pt-2 border-t border-denim-100">
+                  <button onClick={() => openEdit(s)} className="text-xs text-denim-700 underline">
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id_statistik)}
+                    className="text-xs text-red-600 underline"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </Card>
+          ))}
         </div>
       )}
 
       {formOpen && (
-        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20">
+        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20 overflow-y-auto">
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3"
+            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3 my-8"
           >
             <h2 className="font-display text-lg text-denim-700">
               {editingId ? "Edit Statistik" : "Statistik Baru"}
@@ -257,12 +290,52 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
                 className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               />
               <input
-                required
-                placeholder="Engagement (mis. 6.1%)"
-                value={form.engagement_rate}
-                onChange={(e) => setForm({ ...form, engagement_rate: e.target.value })}
+                type="number"
+                placeholder="Komentar"
+                value={form.comments}
+                onChange={(e) => setForm({ ...form, comments: e.target.value })}
                 className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               />
+              <input
+                type="number"
+                placeholder="Repost"
+                value={form.reposts}
+                onChange={(e) => setForm({ ...form, reposts: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+              />
+              <input
+                type="number"
+                placeholder="Share"
+                value={form.shares}
+                onChange={(e) => setForm({ ...form, shares: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+              />
+              <input
+                type="number"
+                placeholder="Save"
+                value={form.saves}
+                onChange={(e) => setForm({ ...form, saves: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+              />
+              <input
+                type="number"
+                placeholder="Follow"
+                value={form.follows}
+                onChange={(e) => setForm({ ...form, follows: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+              />
+              <input
+                type="number"
+                placeholder="Klik link eksternal"
+                value={form.external_link_taps}
+                onChange={(e) => setForm({ ...form, external_link_taps: e.target.value })}
+                className="col-span-2 w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+              />
+            </div>
+
+            <div className="rounded-lg bg-denim-50 px-3 py-2.5 flex items-center justify-between">
+              <span className="text-xs text-denim-700">Engagement rate (otomatis)</span>
+              <span className="font-display text-lg text-denim-700">{hitungEngagementRate(form)}</span>
             </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}

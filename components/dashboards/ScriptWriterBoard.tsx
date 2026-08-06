@@ -21,6 +21,7 @@ type Konten = {
   referensi_desain: string;
   gaya_copywriting: string;
   ditugaskan_oleh: string;
+  tanggal_publish: string;
 };
 
 export default function ScriptWriterBoard({
@@ -53,11 +54,20 @@ export default function ScriptWriterBoard({
     ]).then(([proyekResult, kontenResult]) => {
       if (proyekResult.status === "fulfilled") {
         setProyekAll(proyekResult.value);
+        const kontenData: Konten[] =
+          kontenResult.status === "fulfilled" ? kontenResult.value : [];
         const initialDraft: Record<string, any> = {};
         proyekResult.value.forEach((p: Proyek) => {
+          const kontenTerkait = kontenData.find((k) => k.id_konten === p.id_konten);
+          // Kalau writer belum pernah isi jadwal posting, otomatis usulin
+          // tanggal deadline yang udah Kadiv tulis di brief (jam 19:00
+          // sesuai kebiasaan posting rutin) — writer tinggal cek/sesuaikan,
+          // nggak perlu ngetik tanggal dari nol lagi.
+          const jadwalDefault =
+            p.jadwal_posting || (kontenTerkait?.tanggal_publish ? `${kontenTerkait.tanggal_publish}T19:00` : "");
           initialDraft[p.id_proyek_writer] = {
             naskah_caption: p.naskah_caption ?? "",
-            jadwal_posting: p.jadwal_posting ?? "",
+            jadwal_posting: jadwalDefault,
           };
         });
         setDraft(initialDraft);
@@ -205,6 +215,11 @@ export default function ScriptWriterBoard({
                   {!bisaEdit && <StatusBadge status={p.status} />}
                 </div>
 
+                {konten?.tanggal_publish && (
+                  <p className="text-sm text-red-600 mb-1 font-medium">
+                    Target publish: {konten.tanggal_publish}
+                  </p>
+                )}
                 {konten?.cta && (
                   <p className="text-sm text-denim-900 mb-1">
                     <span className="text-xs text-muted">CTA: </span>
