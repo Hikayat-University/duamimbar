@@ -14,6 +14,7 @@ import HutangPiutangBoard from "@/components/dashboards/HutangPiutangBoard";
 import SocMedKanalBoard from "@/components/dashboards/SocMedKanalBoard";
 import SocMedKontenBoard from "@/components/dashboards/SocMedKontenBoard";
 import SocMedStatistikBoard from "@/components/dashboards/SocMedStatistikBoard";
+import KontenCalendarBoard from "@/components/dashboards/KontenCalendarBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
 import AdminPostingBoard from "@/components/dashboards/AdminPostingBoard";
@@ -134,6 +135,8 @@ export default async function MyPage({
               <SocMedKontenBoard canEdit={active.canEdit} />
             ) : active?.key === "socmed_statistik" ? (
               <SocMedStatistikBoard canEdit={active.canEdit} />
+            ) : active?.key === "socmed_kalender" ? (
+              <KontenCalendarBoard />
             ) : (
               <DataTable sheetEnvVar={config.sheetEnvVar} emptyLabel={config.emptyLabel} />
             )}
