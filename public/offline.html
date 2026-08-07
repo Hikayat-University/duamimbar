@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Pocong Run</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #F6F8FA;
+    font-family: 'Courier New', monospace;
+    overflow: hidden; touch-action: manipulation; user-select: none;
+    position: fixed; inset: 0;
+  }
+  #stage {
+    position: fixed; inset: 0;
+  }
+  canvas {
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    background: #F6F8FA;
+  }
+  #hud {
+    position: fixed; top: max(10px, env(safe-area-inset-top)); right: 14px;
+    color: #13205F; font-size: 13px; letter-spacing: 1px; z-index: 2;
+  }
+  #overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    background: rgba(241,242,249,0.92); color: #13205F; text-align: center;
+    font-size: 14px; padding: 24px; z-index: 3;
+  }
+  #overlay.hidden { display: none; }
+  #overlay b { font-size: 22px; letter-spacing: 2px; color: #1A2E95; }
+  #overlay span.hint {
+    font-size: 12px; color: #4858AA; opacity: 0.9;
+  }
+  #btn, button {
+    margin-top: 4px; padding: 10px 24px; border-radius: 2px;
+    background: #1A2E95; color: white; border: none; font-size: 13px;
+    font-family: inherit; letter-spacing: 1px; cursor: pointer;
+  }
+  #nameInput {
+    margin-top: 2px; padding: 8px 10px; border-radius: 2px;
+    border: 1px solid #98A1CF; background: white; color: #13205F;
+    font-family: inherit; font-size: 13px; letter-spacing: 1px;
+    text-align: center; width: 160px;
+  }
+  .lb-title {
+    font-size: 11px; letter-spacing: 2px; color: #4858AA; margin-top: 6px;
+  }
+  .lb-list {
+    list-style: none; padding: 0; margin: 0; width: 200px;
+  }
+  .lb-list li {
+    display: flex; justify-content: space-between; padding: 3px 6px;
+    font-size: 13px; color: #13205F;
+  }
+  .lb-list li:nth-child(odd) { background: rgba(152,161,207,0.18); }
+  .lb-list .lb-name { text-align: left; }
+  .lb-empty { font-size: 12px; color: #98A1CF; margin: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="hud">Skor: <span id="score">0</span> &nbsp;|&nbsp; Top: <span id="best">0</span></div>
+    <div id="overlay">
+      <b>POCONG RUN</b>
+      <span class="hint">Tap layar / Spasi buat loncatin nisan</span>
+      <button id="btn">Mulai</button>
+      <span class="lb-title">🏆 TOP 5</span>
+      <div id="lbBox"></div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const overlay = document.getElementById('overlay');
+const overlayBtn = document.getElementById('btn');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+
+// Resolusi internal dihitung dari ukuran layar ASLI (dibagi SCALE), bukan
+// angka tetap -- biar full screen di device apapun. Makin KECIL angka
+// SCALE, makin TINGGI resolusi internal-nya, dan makin KECIL + makin
+// halus tampilan tiap elemennya (pocong, nisan, dst) di layar -- ini yang
+// dipakai buat bikin proporsinya lebih mirip dino Chrome yang kecil rapi.
+const SCALE = 1.6;
+let W, H, GROUND_Y;
+
+function resizeCanvas() {
+  W = Math.max(180, Math.floor(window.innerWidth / SCALE));
+  H = Math.max(100, Math.floor(window.innerHeight / SCALE));
+  canvas.width = W;
+  canvas.height = H;
+  GROUND_Y = H - Math.round(H * 0.22);
+  if (typeof pocong !== 'undefined') {
+    pocong.x = Math.round(W * 0.09);
+    if (pocong.onGround) pocong.y = GROUND_Y;
+  }
+}
+
+// Satu keluarga warna aja (monokrom) -- palet biru Duamimbar, dari gelap ke
+// terang. Nggak ada warna lain sama sekali, biar konsisten "monochrome".
+const INK = '#13205F';   // denim-900 -- siluet utama (pocong, nisan)
+const MID = '#4858AA';   // denim-500 -- elemen sekunder
+const FAINT = '#98A1CF'; // denim-300 -- background/awan/garis tanah
+const BG = '#F6F8FA';    // surface -- background game
+
+const PX = 2; // ukuran 1 "pixel" blok, biar chunky
+function block(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x / PX) * PX, Math.round(y / PX) * PX, Math.round(w / PX) * PX, Math.round(h / PX) * PX);
+}
+
+// Gambar dari grid pixel manual (kayak nge-desain sprite di kertas kotak-
+// kotak) -- tiap karakter di matrix mewakili 1 "pixel" yang di-scale biar
+// pas di kotak x,yBottom,w,h. Karakter ' ' = kosong (skip).
+function drawSprite(matrix, x, yBottom, w, h, palette) {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const cw = w / cols;
+  const ch = h / rows;
+  const yTop = yBottom - h;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const color = palette[matrix[r][c]];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x + c * cw), Math.round(yTop + r * ch), Math.ceil(cw), Math.ceil(ch));
+    }
+  }
+}
+
+// Sprite pocong: simpul kain di atas kepala, 2 mata, lipatan kain di kiri
+// (shading), pinggiran bawah zigzag kayak kain robek.
+const POCONG_SPRITE = [
+  "  ##   ",
+  " ##### ",
+  "#ooooo#",
+  "#o.o.o#",
+  "#o.o.o#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "# # # #",
+];
+const POCONG_PALETTE = { '#': INK, 'o': MID, '.': BG, '-': FAINT };
+
+// Sprite nisan: atap bertingkat/melengkung (kayak referensi), badan batu,
+// alas lebar di bawah yang nongol keluar dari badan.
+const NISAN_SPRITE = [
+  "   ###   ",
+  "  #####  ",
+  " ####### ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " ####### ",
+  "#########",
+  "#########",
+];
+const NISAN_PALETTE = { '#': INK, 'o': MID };
+
+const GRAVITY = 0.6;
+const JUMP_FORCE = -8.5;
+
+let state = 'idle';
+let score = 0;
+let best = 0;
+let speed = 3.2;
+let frame = 0;
+let groundOffset = 0;
+let obstacles = [];
+let particles = [];
+let clouds = [];
+
+const pocong = {
+  x: 30, y: 0, vy: 0, w: 20, h: 28, onGround: true, squish: 1,
+};
+
+resizeCanvas();
+pocong.y = GROUND_Y;
+
+for (let i = 0; i < 5; i++) {
+  clouds.push({ x: Math.random() * W, y: 10 + Math.random() * (GROUND_Y * 0.4) });
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+
+function resetGame() {
+  score = 0;
+  speed = 3.2;
+  frame = 0;
+  obstacles = [];
+  particles = [];
+  pocong.y = GROUND_Y;
+  pocong.vy = 0;
+  pocong.onGround = true;
+  pocong.squish = 1;
+}
+
+function jump() {
+  if (state === 'idle' || state === 'dead') {
+    startGame();
+    return;
+  }
+  if (pocong.onGround) {
+    pocong.vy = JUMP_FORCE;
+    pocong.onGround = false;
+    for (let i = 0; i < 4; i++) {
+      particles.push({ x: pocong.x + pocong.w / 2, y: GROUND_Y + pocong.h, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.2, life: 14 });
+    }
+  }
+}
+
+// Leaderboard TERSIMPAN DI DEVICE INI AJA (localStorage) -- game ini
+// khusus muncul pas nggak ada internet, jadi nggak mungkin nyambung ke
+// server buat leaderboard bareng tim. Ini "rekor pribadi" per HP/browser.
+const LB_KEY = 'pocongRunLeaderboard';
+
+function getLeaderboard() {
+  try {
+    return JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveToLeaderboard(name, finalScore) {
+  const lb = getLeaderboard();
+  lb.push({ name: (name || 'Anonim').slice(0, 10), score: Math.floor(finalScore) });
+  lb.sort((a, b) => b.score - a.score);
+  const trimmed = lb.slice(0, 5);
+  localStorage.setItem(LB_KEY, JSON.stringify(trimmed));
+  return trimmed;
+}
+
+function qualifiesForLeaderboard(finalScore) {
+  const lb = getLeaderboard();
+  return lb.length < 5 || Math.floor(finalScore) > lb[lb.length - 1].score;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function renderLeaderboardHTML(lb) {
+  if (lb.length === 0) return '<p class="lb-empty">Belum ada skor tersimpan.</p>';
+  return (
+    '<ol class="lb-list">' +
+    lb
+      .map(
+        (e, i) =>
+          `<li><span class="lb-name">${i + 1}. ${escapeHtml(e.name)}</span><span>${e.score}</span></li>`
+      )
+      .join('') +
+    '</ol>'
+  );
+}
+
+document.getElementById('lbBox').innerHTML = renderLeaderboardHTML(getLeaderboard());
+
+function startGame() {
+  resetGame();
+  state = 'playing';
+  overlay.classList.add('hidden');
+}
+
+function endGame() {
+  state = 'dead';
+  const finalScore = Math.floor(score);
+  best = Math.max(best, finalScore);
+  bestEl.textContent = best;
+  overlay.classList.remove('hidden');
+
+  if (qualifiesForLeaderboard(finalScore)) {
+    overlay.innerHTML = `
+      <b>REKOR BARU!</b>
+      <span class="hint">Skor: ${finalScore} -- masuk Top 5, isi nama:</span>
+      <input id="nameInput" maxlength="10" placeholder="Nama kamu" autocomplete="off" />
+      <button id="saveScoreBtn">Simpan Skor</button>
+    `;
+    const input = document.getElementById('nameInput');
+    input.focus();
+    function submitScore() {
+      const lb = saveToLeaderboard(input.value.trim(), finalScore);
+      overlay.innerHTML = `
+        <b>KESAMBER NISAN</b>
+        <span class="hint">Skor: ${finalScore} &nbsp;-- &nbsp;Top: ${best}</span>
+        <button id="btn2">Main Lagi</button>
+        <span class="lb-title">🏆 TOP 5</span>
+        <div>${renderLeaderboardHTML(lb)}</div>
+      `;
+      document.getElementById('btn2').addEventListener('click', jump);
+    }
+    document.getElementById('saveScoreBtn').addEventListener('click', submitScore);
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') submitScore();
+    });
+  } else {
+    overlay.innerHTML = `
+      <b>KESAMBER NISAN</b>
+      <span class="hint">Skor: ${finalScore} &nbsp;-- &nbsp;Top: ${best}</span>
+      <button id="btn2">Main Lagi</button>
+      <span class="lb-title">🏆 TOP 5</span>
+      <div>${renderLeaderboardHTML(getLeaderboard())}</div>
+    `;
+    document.getElementById('btn2').addEventListener('click', jump);
+  }
+}
+
+function spawnObstacle() {
+  const kinds = [
+    { w: 11, h: 20, type: 'nisan' },
+    { w: 18, h: 17, type: 'nisan-lebar' },
+    { w: 12, h: 12, type: 'batu' },
+  ];
+  const k = kinds[Math.floor(Math.random() * kinds.length)];
+  const isFlying = Math.random() < 0.18 && score > 8;
+  obstacles.push({
+    x: W + 10,
+    w: k.w,
+    h: isFlying ? 11 : k.h,
+    y: isFlying ? GROUND_Y - Math.round(H * 0.18) : GROUND_Y,
+    type: isFlying ? 'terbang' : k.type,
+  });
+}
+
+function update() {
+  frame++;
+  if (state === 'playing') {
+    score += 0.12;
+    speed = 3.2 + Math.min(score / 40, 2.6);
+
+    pocong.vy += GRAVITY;
+    pocong.y += pocong.vy;
+    if (pocong.y >= GROUND_Y) {
+      if (!pocong.onGround) {
+        pocong.squish = 1.3;
+        for (let i = 0; i < 4; i++) {
+          particles.push({ x: pocong.x + pocong.w / 2, y: GROUND_Y + pocong.h, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1, life: 10 });
+        }
+      }
+      pocong.y = GROUND_Y;
+      pocong.vy = 0;
+      pocong.onGround = true;
+    }
+    pocong.squish += (1 - pocong.squish) * 0.25;
+
+    groundOffset -= speed;
+    if (groundOffset <= -16) groundOffset += 16;
+
+    // Jarak minimum antar-obstacle dijaga selalu cukup buat lompat, nggak
+    // peduli sekencang apa speed-nya.
+    if (frame % Math.max(70 - Math.floor(score / 3), 50) === 0) spawnObstacle();
+
+    obstacles.forEach((o) => (o.x -= speed));
+    obstacles = obstacles.filter((o) => o.x + o.w > -10);
+
+    const pBox = { x: pocong.x + 3, y: pocong.y - pocong.h + 4, w: pocong.w - 6, h: pocong.h - 5 };
+    for (const o of obstacles) {
+      const oBox = { x: o.x + 1, y: o.y - o.h, w: o.w - 2, h: o.h };
+      if (
+        pBox.x < oBox.x + oBox.w &&
+        pBox.x + pBox.w > oBox.x &&
+        pBox.y < oBox.y + oBox.h &&
+        pBox.y + pBox.h > oBox.y
+      ) {
+        endGame();
+      }
+    }
+
+    particles.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      p.life--;
+    });
+    particles = particles.filter((p) => p.life > 0);
+
+    clouds.forEach((c) => {
+      c.x -= speed * 0.25;
+      if (c.x < -20) {
+        c.x = W + 10;
+        c.y = 8 + Math.random() * (GROUND_Y * 0.4);
+      }
+    });
+
+    scoreEl.textContent = Math.floor(score);
+  }
+}
+
+function drawClouds() {
+  clouds.forEach((c) => {
+    block(c.x, c.y, 10, 3, FAINT);
+    block(c.x + 3, c.y - 2, 6, 3, FAINT);
+  });
+}
+
+function drawGround() {
+  block(0, GROUND_Y + 2, W, 1, INK);
+  for (let x = groundOffset; x < W; x += 16) {
+    block(x, GROUND_Y + 5, 6, 2, FAINT);
+  }
+}
+
+function drawPocong() {
+  const { x, y, w, h, squish } = pocong;
+  const hh = h * (2 - squish);
+  drawSprite(POCONG_SPRITE, x, y, w, hh, POCONG_PALETTE);
+}
+
+function drawObstacles() {
+  obstacles.forEach((o) => {
+    if (o.type === 'terbang') {
+      block(o.x, o.y - o.h, o.w, o.h, MID);
+      block(o.x + 2, o.y - o.h + 2, 2, 2, BG);
+      block(o.x + o.w - 4, o.y - o.h + 2, 2, 2, BG);
+      return;
+    }
+    if (o.type === 'nisan' || o.type === 'nisan-lebar') {
+      drawSprite(NISAN_SPRITE, o.x, o.y, o.w, o.h, NISAN_PALETTE);
+    } else if (o.type === 'batu') {
+      block(o.x + 2, o.y - o.h, o.w - 4, 2, INK);
+      block(o.x, o.y - o.h + 2, o.w, o.h - 2, INK);
+    } else {
+      block(o.x, o.y - o.h, o.w, o.h, INK);
+      block(o.x + 2, o.y - o.h + 3, o.w - 4, 3, BG);
+    }
+  });
+}
+
+function drawParticles() {
+  particles.forEach((p) => {
+    block(p.x, p.y, 2, 2, MID);
+  });
+}
+
+function draw() {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+  drawClouds();
+  drawGround();
+  drawObstacles();
+  drawPocong();
+  drawParticles();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener('keydown', (e) => {
+  // Jangan anggep spasi sebagai lompat kalau lagi ngetik di kotak nama.
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    jump();
+  }
+});
+document.getElementById('stage').addEventListener('pointerdown', (e) => {
+  // Jangan anggep tap di kotak nama / tombol simpan skor sebagai
+  // lompat/restart -- biarin elemen itu jalan normal.
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  jump();
+});
+overlayBtn.addEventListener('click', jump);
+
+loop();
+</script>
+</body>
+</html>
