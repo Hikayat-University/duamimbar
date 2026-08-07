@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { Card, StatusBadge } from "@/components/ui/Card";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Konten = {
   id_konten: string;
@@ -16,16 +15,28 @@ type Konten = {
 };
 type Kanal = { id_kanal: string; nama_kanal: string; platform: string };
 
-const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+const HARI_SINGKAT = ["SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN"];
+
+/**
+ * Warna BLOK solid per status (beda dari StatusBadge yang cuma badge tipis) —
+ * biar kartunya kerasa kayak "balok" kalender sungguhan, bukan list card
+ * biasa. Tetap ikut spektrum merah->biru yang sama.
+ */
+const BLOK_STATUS: Record<string, string> = {
+  Akan: "bg-orange-100 border-orange-200 text-orange-900",
+  Sedang: "bg-amber-100 border-amber-200 text-amber-900",
+  "Siap Post": "bg-emerald-100 border-emerald-200 text-emerald-900",
+  Sudah: "bg-blue-100 border-blue-200 text-blue-900",
+  Revisi: "bg-red-100 border-red-200 text-red-900",
+};
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Senin di minggu yang sama dengan tanggal `d`. */
 function awalMinggu(d: Date) {
   const hasil = new Date(d);
-  const hari = hasil.getDay(); // 0 = Minggu
+  const hari = hasil.getDay();
   const geser = hari === 0 ? -6 : 1 - hari;
   hasil.setDate(hasil.getDate() + geser);
   hasil.setHours(0, 0, 0, 0);
@@ -37,6 +48,7 @@ export default function KontenCalendarBoard() {
   const [kanalList, setKanalList] = useState<Kanal[]>([]);
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => awalMinggu(new Date()));
+  const [selected, setSelected] = useState<Konten | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -45,11 +57,7 @@ export default function KontenCalendarBoard() {
       fetch("/api/socmed/kanal").then((res) => res.json()),
     ]).then(([kontenResult, kanalResult]) => {
       if (kontenResult.status === "fulfilled") setKontenList(kontenResult.value);
-      else console.error("Gagal ambil konten:", kontenResult.reason);
-
       if (kanalResult.status === "fulfilled") setKanalList(kanalResult.value);
-      else console.error("Gagal ambil kanal:", kanalResult.reason);
-
       setLoading(false);
     });
   }, []);
@@ -58,103 +66,154 @@ export default function KontenCalendarBoard() {
     return kanalList.find((k) => k.id_kanal === id)?.nama_kanal ?? "";
   }
 
-  const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [weekStart]);
+  const days = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        return d;
+      }),
+    [weekStart]
+  );
 
   const todayISO = toISODate(new Date());
-  const labelMinggu = `${days[0].toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`;
+  const labelMinggu = `${days[0].toLocaleDateString("id-ID", { day: "numeric", month: "short" })} - ${days[6].toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`;
 
   function gantiMinggu(arah: 1 | -1) {
     const baru = new Date(weekStart);
     baru.setDate(baru.getDate() + arah * 7);
     setWeekStart(baru);
-  }
-
-  function keMingguIni() {
-    setWeekStart(awalMinggu(new Date()));
+    setSelected(null);
   }
 
   if (loading) return <p className="text-sm text-muted">Memuat kalender...</p>;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => gantiMinggu(-1)}
-          className="p-2 rounded-lg border border-denim-100 text-denim-700 hover:bg-surface"
+          className="p-2 rounded-lg border border-denim-100 text-denim-700 hover:bg-surface shrink-0"
         >
           <ChevronLeft size={16} />
         </button>
         <div className="text-center">
           <p className="text-sm font-medium text-denim-900">{labelMinggu}</p>
-          <button onClick={keMingguIni} className="text-xs text-denim-500 underline mt-0.5">
+          <button
+            onClick={() => {
+              setWeekStart(awalMinggu(new Date()));
+              setSelected(null);
+            }}
+            className="text-xs text-denim-500 underline mt-0.5"
+          >
             Minggu ini
           </button>
         </div>
         <button
           onClick={() => gantiMinggu(1)}
-          className="p-2 rounded-lg border border-denim-100 text-denim-700 hover:bg-surface"
+          className="p-2 rounded-lg border border-denim-100 text-denim-700 hover:bg-surface shrink-0"
         >
           <ChevronRight size={16} />
         </button>
       </div>
 
-      <div className="space-y-5">
+      {/* Grid kalender -- geser ke samping di HP, snap per kolom hari */}
+      <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
         {days.map((d, i) => {
           const iso = toISODate(d);
           const isToday = iso === todayISO;
           const kontenHariIni = kontenList.filter((k) => k.tanggal_publish === iso);
 
           return (
-            <div key={iso}>
-              <div className="flex items-center gap-2 mb-2">
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    isToday ? "bg-denim-700 text-white" : "text-denim-700"
-                  }`}
-                >
-                  {HARI[i]}, {d.toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                </span>
-                {isToday && <span className="text-[10px] text-gold-500 font-medium">HARI INI</span>}
+            <div
+              key={iso}
+              className="shrink-0 w-[150px] snap-start rounded-2xl border border-denim-100 bg-white overflow-hidden"
+            >
+              <div
+                className={`px-2.5 py-2 text-center border-b border-denim-100 ${
+                  isToday ? "bg-denim-700 text-white" : "bg-surface text-denim-700"
+                }`}
+              >
+                <p className="text-[10px] font-medium tracking-wide">{HARI_SINGKAT[i]}</p>
+                <p className="text-sm font-display leading-none mt-0.5">{d.getDate()}</p>
               </div>
 
-              {kontenHariIni.length === 0 ? (
-                <p className="text-xs text-muted pl-1">Nggak ada jadwal publish.</p>
-              ) : (
-                <div className="space-y-2">
-                  {kontenHariIni.map((k) => (
-                    <Card key={k.id_konten} className="py-3">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="font-medium text-denim-900 text-sm">{k.judul_konten}</p>
-                        <StatusBadge status={k.status} />
-                      </div>
-                      {namaKanal(k.id_kanal) && (
-                        <p className="text-xs text-muted font-mono mb-1">{namaKanal(k.id_kanal)}</p>
-                      )}
-                      <p className="text-xs text-muted">
-                        Writer: {k.assigned_script_writer || "-"} · Designer:{" "}
-                        {k.assigned_graphic_designer || "-"} · Editor: {k.assigned_editor || "-"}
+              <div className="p-1.5 space-y-1.5 min-h-[80px]">
+                {kontenHariIni.length === 0 ? (
+                  <p className="text-[10px] text-muted text-center py-3">-</p>
+                ) : (
+                  kontenHariIni.map((k) => (
+                    <button
+                      key={k.id_konten}
+                      onClick={() => setSelected(k)}
+                      className={`w-full text-left rounded-lg border px-2 py-1.5 transition-transform active:scale-95 ${
+                        BLOK_STATUS[k.status] ?? "bg-surface border-denim-100 text-denim-900"
+                      }`}
+                    >
+                      <p className="text-[11px] font-medium leading-snug line-clamp-2">
+                        {k.judul_konten}
                       </p>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                      {namaKanal(k.id_kanal) && (
+                        <p className="text-[9px] opacity-70 font-mono mt-0.5 truncate">
+                          {namaKanal(k.id_kanal)}
+                        </p>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
+      <p className="text-[10px] text-muted mt-2 sm:hidden">← geser buat lihat hari lain →</p>
+
       {kontenList.filter((k) => !k.tanggal_publish).length > 0 && (
-        <div className="mt-6 pt-4 border-t border-denim-100">
-          <p className="text-xs text-muted flex items-center gap-1.5 mb-2">
-            <CalendarDays size={13} />
-            Belum ada tanggal publish ({kontenList.filter((k) => !k.tanggal_publish).length} konten)
-          </p>
+        <p className="text-xs text-muted mt-4 pt-3 border-t border-denim-100">
+          {kontenList.filter((k) => !k.tanggal_publish).length} konten belum ada tanggal publish
+          (nggak muncul di kalender).
+        </p>
+      )}
+
+      {/* Detail konten yang di-tap */}
+      {selected && (
+        <div
+          className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="font-display text-lg text-denim-700">{selected.judul_konten}</h2>
+              <span
+                className={`text-xs font-mono px-2 py-0.5 rounded-full shrink-0 ${
+                  BLOK_STATUS[selected.status] ?? "bg-surface text-muted"
+                }`}
+              >
+                {selected.status}
+              </span>
+            </div>
+            <p className="text-xs text-muted font-mono">{namaKanal(selected.id_kanal)}</p>
+            <p className="text-sm text-denim-900 pt-2">
+              Target publish: <span className="font-medium">{selected.tanggal_publish}</span>
+            </p>
+            <p className="text-sm text-muted">
+              Writer: {selected.assigned_script_writer || "-"}
+              <br />
+              Designer: {selected.assigned_graphic_designer || "-"}
+              <br />
+              Editor: {selected.assigned_editor || "-"}
+            </p>
+            <button
+              onClick={() => setSelected(null)}
+              className="w-full mt-2 text-sm py-2 rounded-lg border border-denim-100 text-denim-900"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
     </div>
