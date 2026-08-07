@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <body className={`${inter.variable} font-sans bg-surface text-denim-900 antialiased`}>
+        <RegisterServiceWorker />
         {children}
       </body>
     </html>
