@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Pocong Run</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #F1F2F9;
+    font-family: 'Courier New', monospace;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; touch-action: manipulation; user-select: none;
+  }
+  #wrap {
+    width: 100%; max-width: 640px; padding: 16px;
+  }
+  h1 {
+    color: #1A2E95; text-align: center; font-size: 22px;
+    letter-spacing: 2px; margin: 0 0 4px;
+  }
+  p.sub {
+    color: #4858AA; text-align: center; font-size: 12px; margin: 0 0 12px;
+  }
+  #stage {
+    position: relative; width: 100%; aspect-ratio: 3 / 1;
+    border: 2px solid #98A1CF; border-radius: 4px; overflow: hidden;
+    background: #F6F8FA;
+  }
+  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  #hud {
+    position: absolute; top: 8px; right: 12px;
+    color: #13205F; font-size: 13px; letter-spacing: 1px;
+  }
+  #overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    background: rgba(241,242,249,0.9); color: #13205F; text-align: center;
+    font-size: 14px; padding: 12px;
+  }
+  #overlay.hidden { display: none; }
+  #overlay b { font-size: 20px; letter-spacing: 1px; color: #1A2E95; }
+  #overlay span.hint {
+    font-size: 12px; color: #4858AA; opacity: 0.9;
+  }
+  #btn, button {
+    margin-top: 4px; padding: 8px 20px; border-radius: 2px;
+    background: #1A2E95; color: white; border: none; font-size: 13px;
+    font-family: inherit; letter-spacing: 1px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>POCONG RUN</h1>
+  <p class="sub">Tap layar / tekan SPASI buat loncatin nisan</p>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="hud">Skor: <span id="score">0</span> &nbsp;|&nbsp; Top: <span id="best">0</span></div>
+    <div id="overlay">
+      <b>POCONG RUN</b>
+      <span class="hint">Tap / Spasi buat mulai loncat</span>
+      <button id="btn">Mulai</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const overlay = document.getElementById('overlay');
+const overlayBtn = document.getElementById('btn');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+
+// Resolusi internal RENDAH sengaja -- ini kuncinya biar keliatan pixelated
+// kayak dino game Chrome, di-scale gede lewat CSS (image-rendering:pixelated
+// bikin scale-up-nya kotak-kotak, bukan blur).
+const W = 300, H = 100;
+canvas.width = W;
+canvas.height = H;
+
+// Satu keluarga warna aja (monokrom) -- palet biru Duamimbar, dari gelap ke
+// terang. Nggak ada warna lain sama sekali, biar konsisten "monochrome".
+const INK = '#13205F';   // denim-900 -- siluet utama (pocong, nisan)
+const MID = '#4858AA';   // denim-500 -- elemen sekunder
+const FAINT = '#98A1CF'; // denim-300 -- background/awan/garis tanah
+const BG = '#F6F8FA';    // surface -- background game
+
+const PX = 2; // ukuran 1 "pixel" blok, biar chunky
+function block(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x / PX) * PX, Math.round(y / PX) * PX, Math.round(w / PX) * PX, Math.round(h / PX) * PX);
+}
+
+// Gambar dari grid pixel manual (kayak nge-desain sprite di kertas kotak-
+// kotak) -- tiap karakter di matrix mewakili 1 "pixel" yang di-scale biar
+// pas di kotak x,yBottom,w,h. Karakter ' ' = kosong (skip).
+function drawSprite(matrix, x, yBottom, w, h, palette) {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const cw = w / cols;
+  const ch = h / rows;
+  const yTop = yBottom - h;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const color = palette[matrix[r][c]];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x + c * cw), Math.round(yTop + r * ch), Math.ceil(cw), Math.ceil(ch));
+    }
+  }
+}
+
+// Sprite pocong: simpul kain di atas kepala, 2 mata, lipatan kain di kiri
+// (shading), pinggiran bawah zigzag kayak kain robek.
+const POCONG_SPRITE = [
+  "  ##   ",
+  " ##### ",
+  "#ooooo#",
+  "#o.o.o#",
+  "#o.o.o#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "#-oooo#",
+  "# # # #",
+];
+const POCONG_PALETTE = { '#': INK, 'o': MID, '.': BG, '-': FAINT };
+
+// Sprite nisan: atap bertingkat/melengkung (kayak referensi), badan batu,
+// alas lebar di bawah yang nongol keluar dari badan.
+const NISAN_SPRITE = [
+  "   ###   ",
+  "  #####  ",
+  " ####### ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " #ooooo# ",
+  " ####### ",
+  "#########",
+  "#########",
+];
+const NISAN_PALETTE = { '#': INK, 'o': MID };
+
+const GROUND_Y = 78;
+const GRAVITY = 0.6;
+const JUMP_FORCE = -8.5;
+
+let state = 'idle';
+let score = 0;
+let best = 0;
+let speed = 3.2;
+let frame = 0;
+let groundOffset = 0;
+let obstacles = [];
+let particles = [];
+let clouds = [];
+
+for (let i = 0; i < 4; i++) {
+  clouds.push({ x: Math.random() * W, y: 10 + Math.random() * 20 });
+}
+
+const pocong = {
+  x: 30, y: GROUND_Y, vy: 0, w: 16, h: 22, onGround: true, squish: 1,
+};
+
+function resetGame() {
+  score = 0;
+  speed = 3.2;
+  frame = 0;
+  obstacles = [];
+  particles = [];
+  pocong.y = GROUND_Y;
+  pocong.vy = 0;
+  pocong.onGround = true;
+  pocong.squish = 1;
+}
+
+function jump() {
+  if (state === 'idle' || state === 'dead') {
+    startGame();
+    return;
+  }
+  if (pocong.onGround) {
+    pocong.vy = JUMP_FORCE;
+    pocong.onGround = false;
+    for (let i = 0; i < 4; i++) {
+      particles.push({ x: pocong.x + pocong.w / 2, y: GROUND_Y + pocong.h, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.2, life: 14 });
+    }
+  }
+}
+
+function startGame() {
+  resetGame();
+  state = 'playing';
+  overlay.classList.add('hidden');
+}
+
+function endGame() {
+  state = 'dead';
+  best = Math.max(best, Math.floor(score));
+  bestEl.textContent = best;
+  overlay.classList.remove('hidden');
+  overlay.innerHTML = `
+    <b>KESAMBER NISAN</b>
+    <span class="hint">Skor: ${Math.floor(score)} &nbsp;•&nbsp; Top: ${best}</span>
+    <button id="btn2">Main Lagi</button>
+  `;
+  document.getElementById('btn2').addEventListener('click', jump);
+}
+
+function spawnObstacle() {
+  const kinds = [
+    { w: 9, h: 16, type: 'nisan' },
+    { w: 15, h: 14, type: 'nisan-lebar' },
+    { w: 10, h: 10, type: 'batu' },
+  ];
+  const k = kinds[Math.floor(Math.random() * kinds.length)];
+  const isFlying = Math.random() < 0.18 && score > 8;
+  obstacles.push({
+    x: W + 10,
+    w: k.w,
+    h: isFlying ? 9 : k.h,
+    y: isFlying ? GROUND_Y - 18 : GROUND_Y,
+    type: isFlying ? 'terbang' : k.type,
+  });
+}
+
+function update() {
+  frame++;
+  if (state === 'playing') {
+    score += 0.12;
+    speed = 3.2 + Math.min(score / 40, 2.6);
+
+    pocong.vy += GRAVITY;
+    pocong.y += pocong.vy;
+    if (pocong.y >= GROUND_Y) {
+      if (!pocong.onGround) {
+        pocong.squish = 1.3;
+        for (let i = 0; i < 4; i++) {
+          particles.push({ x: pocong.x + pocong.w / 2, y: GROUND_Y + pocong.h, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1, life: 10 });
+        }
+      }
+      pocong.y = GROUND_Y;
+      pocong.vy = 0;
+      pocong.onGround = true;
+    }
+    pocong.squish += (1 - pocong.squish) * 0.25;
+
+    groundOffset -= speed;
+    if (groundOffset <= -16) groundOffset += 16;
+
+    // Jarak minimum antar-obstacle dijaga selalu cukup buat lompat, nggak
+    // peduli sekencang apa speed-nya (ini yang bikin skor 73 kemarin "mentok").
+    if (frame % Math.max(70 - Math.floor(score / 3), 50) === 0) spawnObstacle();
+
+    obstacles.forEach((o) => (o.x -= speed));
+    obstacles = obstacles.filter((o) => o.x + o.w > -10);
+
+    const pBox = { x: pocong.x + 3, y: pocong.y - pocong.h + 4, w: pocong.w - 6, h: pocong.h - 5 };
+    for (const o of obstacles) {
+      const oBox = { x: o.x + 1, y: o.y - o.h, w: o.w - 2, h: o.h };
+      if (
+        pBox.x < oBox.x + oBox.w &&
+        pBox.x + pBox.w > oBox.x &&
+        pBox.y < oBox.y + oBox.h &&
+        pBox.y + pBox.h > oBox.y
+      ) {
+        endGame();
+      }
+    }
+
+    particles.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      p.life--;
+    });
+    particles = particles.filter((p) => p.life > 0);
+
+    clouds.forEach((c) => {
+      c.x -= speed * 0.25;
+      if (c.x < -20) {
+        c.x = W + 10;
+        c.y = 8 + Math.random() * 20;
+      }
+    });
+
+    scoreEl.textContent = Math.floor(score);
+  }
+}
+
+function drawClouds() {
+  clouds.forEach((c) => {
+    block(c.x, c.y, 10, 3, FAINT);
+    block(c.x + 3, c.y - 2, 6, 3, FAINT);
+  });
+}
+
+function drawGround() {
+  block(0, GROUND_Y + 2, W, 1, INK);
+  for (let x = groundOffset; x < W; x += 16) {
+    block(x, GROUND_Y + 5, 6, 2, FAINT);
+  }
+}
+
+function drawPocong() {
+  const { x, y, w, h, squish } = pocong;
+  const hh = h * (2 - squish);
+  drawSprite(POCONG_SPRITE, x, y, w, hh, POCONG_PALETTE);
+}
+
+function drawObstacles() {
+  obstacles.forEach((o) => {
+    if (o.type === 'terbang') {
+      block(o.x, o.y - o.h, o.w, o.h, MID);
+      block(o.x + 2, o.y - o.h + 2, 2, 2, BG);
+      block(o.x + o.w - 4, o.y - o.h + 2, 2, 2, BG);
+      return;
+    }
+    if (o.type === 'nisan' || o.type === 'nisan-lebar') {
+      drawSprite(NISAN_SPRITE, o.x, o.y, o.w, o.h, NISAN_PALETTE);
+    } else if (o.type === 'batu') {
+      block(o.x + 2, o.y - o.h, o.w - 4, 2, INK);
+      block(o.x, o.y - o.h + 2, o.w, o.h - 2, INK);
+    } else {
+      block(o.x, o.y - o.h, o.w, o.h, INK);
+      block(o.x + 2, o.y - o.h + 3, o.w - 4, 3, BG);
+    }
+  });
+}
+
+function drawParticles() {
+  particles.forEach((p) => {
+    block(p.x, p.y, 2, 2, MID);
+  });
+}
+
+function draw() {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+  drawClouds();
+  drawGround();
+  drawObstacles();
+  drawPocong();
+  drawParticles();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    jump();
+  }
+});
+document.getElementById('stage').addEventListener('pointerdown', jump);
+overlayBtn.addEventListener('click', jump);
+
+loop();
+</script>
+</body>
+</html>
