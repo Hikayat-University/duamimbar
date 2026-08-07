@@ -24,11 +24,6 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_SOCMED_STATISTIK",
     emptyLabel: "Belum ada data statistik mingguan.",
   },
-  socmed_kalender: {
-    title: "Kalender Konten",
-    sheetEnvVar: "SHEET_ID_SOCMED_KONTEN",
-    emptyLabel: "Belum ada konten terjadwal.",
-  },
   proyek_script_writer: {
     title: "Proyek Script Writer",
     sheetEnvVar: "SHEET_ID_SOCMED_PROYEK_WRITER",
