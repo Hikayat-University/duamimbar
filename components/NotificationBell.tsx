@@ -94,7 +94,7 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((o) => !o)}
         title="Notifikasi"
-        className="relative flex flex-col items-center gap-0.5 rounded-full px-2 py-1 text-denim-900 transition-colors hover:bg-white/60 hover:text-denim-700"
+        className="relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-denim-900 transition-colors hover:bg-surface"
       >
         <Bell size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
@@ -102,11 +102,10 @@ export default function NotificationBell() {
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-        <span className="hidden text-[10px] sm:inline">Notif</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-2xl border border-denim-100 bg-white shadow-lg z-40">
+        <div className="absolute left-full bottom-0 ml-2 w-80 max-h-96 overflow-y-auto rounded-2xl border border-denim-100 bg-white shadow-lg z-40">
           <div className="flex items-center justify-between px-4 py-3 border-b border-denim-100">
             <span className="text-sm font-medium text-denim-900">Notifikasi</span>
             {unreadCount > 0 && (

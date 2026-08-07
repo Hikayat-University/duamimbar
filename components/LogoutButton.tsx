@@ -22,10 +22,9 @@ export default function LogoutButton() {
       onClick={handleLogout}
       disabled={loading}
       title="Keluar"
-      className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-denim-900 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+      className="flex items-center justify-center p-1.5 rounded-lg text-denim-900 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
     >
-      {loading ? <Loader2 size={19} strokeWidth={1.75} className="animate-spin" /> : <LogOut size={19} strokeWidth={1.75} />}
-      <span className="hidden sm:inline text-xs">Keluar</span>
+      {loading ? <Loader2 size={18} strokeWidth={1.75} className="animate-spin" /> : <LogOut size={18} strokeWidth={1.75} />}
     </button>
   );
 }
