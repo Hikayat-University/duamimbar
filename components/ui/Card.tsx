@@ -46,6 +46,7 @@ const STATUS_TONE: Record<string, string> = {
 
   // Hijau — progres baik / menunggu keputusan / arus positif
   Review: "bg-emerald-50 text-emerald-700",
+  "Siap Post": "bg-emerald-50 text-emerald-700",
   Masuk: "bg-emerald-50 text-emerald-700",
   Revenue: "bg-emerald-50 text-emerald-700",
   Piutang: "bg-emerald-50 text-emerald-700",
