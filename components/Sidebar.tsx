@@ -48,7 +48,7 @@ export default function Sidebar({ nama, role }: { nama: string; role?: string })
 
   return (
     <aside
-      className={`sticky top-0 self-start h-screen shrink-0 border-r border-denim-100 bg-white flex flex-col transition-all duration-200 ${
+      className={`hidden sm:flex sticky top-0 self-start h-screen shrink-0 border-r border-denim-100 bg-white flex-col transition-all duration-200 ${
         collapsed ? "w-16" : "w-56"
       }`}
     >

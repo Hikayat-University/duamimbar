@@ -21,7 +21,11 @@ function waktuRelatif(iso: string) {
   return `${Math.floor(detik / 86400)}h lalu`;
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({
+  variant = "sidebar",
+}: {
+  variant?: "sidebar" | "bottombar";
+}) {
   const router = useRouter();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
@@ -105,7 +109,13 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-full bottom-0 ml-2 w-80 max-h-96 overflow-y-auto rounded-2xl border border-denim-100 bg-white shadow-lg z-40">
+        <div
+          className={`absolute w-80 max-h-96 overflow-y-auto rounded-2xl border border-denim-100 bg-white shadow-lg z-40 ${
+            variant === "bottombar"
+              ? "bottom-full right-0 mb-2"
+              : "left-full bottom-0 ml-2"
+          }`}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-denim-100">
             <span className="text-sm font-medium text-denim-900">Notifikasi</span>
             {unreadCount > 0 && (
