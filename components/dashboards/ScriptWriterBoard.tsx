@@ -38,6 +38,7 @@ export default function ScriptWriterBoard({
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSelesai, setShowSelesai] = useState(false);
 
   // draft naskah/jadwal lokal per kartu, biar nggak nyimpen tiap ketikan
   const [draft, setDraft] = useState<Record<string, { naskah_caption: string; jadwal_posting: string }>>({});
@@ -89,6 +90,12 @@ export default function ScriptWriterBoard({
   const proyek = filterToOwn
     ? proyekAll.filter((p) => p.nama_writer === currentUserNama)
     : proyekAll;
+
+  // Terbaru di atas (baris paling akhir ditambahkan ke sheet = paling baru),
+  // dan yang "Disetujui" dipisah ke bagian collapsible di bawah.
+  const proyekTerurut = [...proyek].reverse();
+  const proyekAktif = proyekTerurut.filter((p) => p.status !== "Disetujui");
+  const proyekSelesai = proyekTerurut.filter((p) => p.status === "Disetujui");
 
   async function patchProyek(id: string, updates: Record<string, string>) {
     return fetch("/api/socmed/proyek-writer", {
@@ -170,6 +177,132 @@ export default function ScriptWriterBoard({
     count: proyek.filter((p) => p.status === s).length,
   }));
 
+  function renderKartu(p: Proyek) {
+    const konten = kontenDetail(p.id_konten);
+    const bisaEdit = canEditAll || p.nama_writer === currentUserNama;
+    const d = draft[p.id_proyek_writer] ?? { naskah_caption: "", jadwal_posting: "" };
+
+    return (
+      <Card key={p.id_proyek_writer}>
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div>
+            <p className="font-medium text-denim-900 text-sm">
+              {konten?.judul_konten ?? (
+                <span className="text-muted italic">(konten tidak ditemukan)</span>
+              )}
+            </p>
+            {canEditAll && (
+              <p className="text-xs text-muted font-mono mb-0.5">{p.nama_writer}</p>
+            )}
+            {konten?.ditugaskan_oleh && (
+              <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
+            )}
+          </div>
+          {!bisaEdit && <StatusBadge status={p.status} />}
+        </div>
+
+        {konten?.tanggal_publish && (
+          <p className="text-sm text-red-600 mb-1 font-medium">
+            Target publish: {konten.tanggal_publish}
+          </p>
+        )}
+        {konten?.cta && (
+          <p className="text-sm text-denim-900 mb-1">
+            <span className="text-xs text-muted">CTA: </span>
+            {konten.cta}
+          </p>
+        )}
+        {konten?.gaya_copywriting && (
+          <p className="text-sm text-muted mb-1">
+            <span className="text-xs">Gaya: </span>
+            {konten.gaya_copywriting}
+          </p>
+        )}
+        {konten?.referensi_desain && (
+          <a
+            href={konten.referensi_desain}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-denim-500 underline block mb-1.5"
+          >
+            Lihat referensi desain
+          </a>
+        )}
+
+        {p.catatan && (
+          <p className="text-sm text-gold-500 mb-2">
+            <span className="text-xs">Catatan Kadiv: </span>
+            {p.catatan}
+          </p>
+        )}
+
+        {bisaEdit ? (
+          <>
+            <textarea
+              placeholder="Tulis naskah & caption di sini..."
+              value={d.naskah_caption}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  [p.id_proyek_writer]: { ...d, naskah_caption: e.target.value },
+                })
+              }
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 mb-2"
+              rows={4}
+            />
+            <div className="flex items-center gap-2 mb-2">
+              <label className="text-xs text-muted whitespace-nowrap">Jadwal posting:</label>
+              <input
+                type="datetime-local"
+                value={d.jadwal_posting}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    [p.id_proyek_writer]: { ...d, jadwal_posting: e.target.value },
+                  })
+                }
+                className="rounded-lg border border-denim-100 px-2 py-1 text-xs outline-none focus:border-denim-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-denim-100">
+              <button
+                onClick={() => saveNaskah(p.id_proyek_writer)}
+                disabled={savingId === p.id_proyek_writer}
+                className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+              >
+                {savingId === p.id_proyek_writer ? "Menyimpan..." : "Simpan Naskah"}
+              </button>
+              <select
+                value={p.status}
+                disabled={savingId === p.id_proyek_writer}
+                onChange={(e) => updateStatus(p.id_proyek_writer, e.target.value)}
+                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {canEditAll && (
+                <button onClick={() => openFeedback(p)} className="text-xs text-denim-700 underline">
+                  Beri Catatan
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(p.id_proyek_writer)}
+                className="text-xs text-red-600 underline"
+              >
+                Hapus
+              </button>
+            </div>
+          </>
+        ) : null}
+      </Card>
+    );
+  }
+
   return (
     <div>
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
@@ -189,137 +322,30 @@ export default function ScriptWriterBoard({
         </div>
       )}
 
-      {proyek.length === 0 ? (
+      {proyekAktif.length === 0 && proyekSelesai.length === 0 ? (
         <p className="text-sm text-muted">Belum ada proyek yang di-assign.</p>
       ) : (
-        <div className="space-y-3">
-          {proyek.map((p) => {
-            const konten = kontenDetail(p.id_konten);
-            const bisaEdit = canEditAll || p.nama_writer === currentUserNama;
-            const d = draft[p.id_proyek_writer] ?? { naskah_caption: "", jadwal_posting: "" };
+        <>
+          {proyekAktif.length === 0 ? (
+            <p className="text-sm text-muted mb-4">Nggak ada proyek aktif — semua udah disetujui.</p>
+          ) : (
+            <div className="space-y-3">{proyekAktif.map((p) => renderKartu(p))}</div>
+          )}
 
-            return (
-              <Card key={p.id_proyek_writer}>
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div>
-                    <p className="font-medium text-denim-900 text-sm">
-                      {konten?.judul_konten ?? p.id_konten}
-                    </p>
-                    {canEditAll && (
-                      <p className="text-xs text-muted font-mono mb-0.5">{p.nama_writer}</p>
-                    )}
-                    {konten?.ditugaskan_oleh && (
-                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
-                    )}
-                  </div>
-                  {!bisaEdit && <StatusBadge status={p.status} />}
-                </div>
-
-                {konten?.tanggal_publish && (
-                  <p className="text-sm text-red-600 mb-1 font-medium">
-                    Target publish: {konten.tanggal_publish}
-                  </p>
-                )}
-                {konten?.cta && (
-                  <p className="text-sm text-denim-900 mb-1">
-                    <span className="text-xs text-muted">CTA: </span>
-                    {konten.cta}
-                  </p>
-                )}
-                {konten?.gaya_copywriting && (
-                  <p className="text-sm text-muted mb-1">
-                    <span className="text-xs">Gaya: </span>
-                    {konten.gaya_copywriting}
-                  </p>
-                )}
-                {konten?.referensi_desain && (
-                  <a
-                    href={konten.referensi_desain}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-denim-500 underline block mb-1.5"
-                  >
-                    Lihat referensi desain
-                  </a>
-                )}
-
-                {p.catatan && (
-                  <p className="text-sm text-gold-500 mb-2">
-                    <span className="text-xs">Catatan Kadiv: </span>
-                    {p.catatan}
-                  </p>
-                )}
-
-                {bisaEdit ? (
-                  <>
-                    <textarea
-                      placeholder="Tulis naskah & caption di sini..."
-                      value={d.naskah_caption}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          [p.id_proyek_writer]: { ...d, naskah_caption: e.target.value },
-                        })
-                      }
-                      className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 mb-2"
-                      rows={4}
-                    />
-                    <div className="flex items-center gap-2 mb-2">
-                      <label className="text-xs text-muted whitespace-nowrap">Jadwal posting:</label>
-                      <input
-                        type="datetime-local"
-                        value={d.jadwal_posting}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            [p.id_proyek_writer]: { ...d, jadwal_posting: e.target.value },
-                          })
-                        }
-                        className="rounded-lg border border-denim-100 px-2 py-1 text-xs outline-none focus:border-denim-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-denim-100">
-                      <button
-                        onClick={() => saveNaskah(p.id_proyek_writer)}
-                        disabled={savingId === p.id_proyek_writer}
-                        className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
-                      >
-                        {savingId === p.id_proyek_writer ? "Menyimpan..." : "Simpan Naskah"}
-                      </button>
-                      <select
-                        value={p.status}
-                        disabled={savingId === p.id_proyek_writer}
-                        onChange={(e) => updateStatus(p.id_proyek_writer, e.target.value)}
-                        className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                      {canEditAll && (
-                        <button
-                          onClick={() => openFeedback(p)}
-                          className="text-xs text-denim-700 underline"
-                        >
-                          Beri Catatan
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(p.id_proyek_writer)}
-                        className="text-xs text-red-600 underline"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </Card>
-            );
-          })}
-        </div>
+          {proyekSelesai.length > 0 && (
+            <div className="mt-5">
+              <button
+                onClick={() => setShowSelesai((s) => !s)}
+                className="text-xs font-medium text-denim-700 flex items-center gap-1"
+              >
+                {showSelesai ? "▾" : "▸"} Disetujui ({proyekSelesai.length})
+              </button>
+              {showSelesai && (
+                <div className="space-y-3 mt-3">{proyekSelesai.map((p) => renderKartu(p))}</div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {feedbackOpenId && (

@@ -28,6 +28,7 @@ export default function AdminPostingBoard({ canEdit }: { canEdit: boolean }) {
   const [kanalList, setKanalList] = useState<Kanal[]>([]);
   const [loading, setLoading] = useState(true);
   const [postingId, setPostingId] = useState<string | null>(null);
+  const [showRiwayat, setShowRiwayat] = useState(false);
 
   function load() {
     setLoading(true);
@@ -58,7 +59,9 @@ export default function AdminPostingBoard({ canEdit }: { canEdit: boolean }) {
     load();
   }
 
-  const antrian = list.filter((k) => k.status === "Siap Post");
+  // Terbaru duluan (baris paling akhir ditambahkan = paling baru).
+  const antrian = [...list].filter((k) => k.status === "Siap Post").reverse();
+  const riwayat = [...list].filter((k) => k.status === "Sudah").reverse();
 
   if (loading) return <p className="text-sm text-muted">Memuat...</p>;
 
@@ -111,6 +114,34 @@ export default function AdminPostingBoard({ canEdit }: { canEdit: boolean }) {
               )}
             </Card>
           ))}
+        </div>
+      )}
+
+      {riwayat.length > 0 && (
+        <div className="mt-5">
+          <button
+            onClick={() => setShowRiwayat((s) => !s)}
+            className="text-xs font-medium text-denim-700 flex items-center gap-1"
+          >
+            {showRiwayat ? "▾" : "▸"} Riwayat Sudah Diposting ({riwayat.length})
+          </button>
+          {showRiwayat && (
+            <div className="space-y-3 mt-3">
+              {riwayat.map((k) => (
+                <Card key={k.id_konten} className="opacity-70">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-denim-900 text-sm">{k.judul_konten}</p>
+                      <p className="text-xs text-muted font-mono">{namaKanal(k.id_kanal)}</p>
+                    </div>
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
+                      Sudah
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

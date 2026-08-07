@@ -46,6 +46,7 @@ export default function GraphicDesignerBoard({
   const [briefOpenId, setBriefOpenId] = useState<string | null>(null);
   const [briefForm, setBriefForm] = useState({ brief_desain: "", catatan: "" });
   const [savingBrief, setSavingBrief] = useState(false);
+  const [showSelesai, setShowSelesai] = useState(false);
 
   function load() {
     setLoading(true);
@@ -92,6 +93,13 @@ export default function GraphicDesignerBoard({
   const proyek = filterToOwn
     ? proyekAll.filter((p) => p.nama_designer === currentUserNama)
     : proyekAll;
+
+  // Terbaru di atas (baris paling akhir ditambahkan ke sheet = paling baru),
+  // dan yang "Disetujui" dipisah ke bagian collapsible di bawah biar nggak
+  // numpuk sama yang masih aktif dikerjakan.
+  const proyekTerurut = [...proyek].reverse();
+  const proyekAktif = proyekTerurut.filter((p) => p.status !== "Disetujui");
+  const proyekSelesai = proyekTerurut.filter((p) => p.status === "Disetujui");
 
   async function patchProyek(id: string, updates: Record<string, string>) {
     return fetch("/api/socmed/proyek-designer", {
@@ -193,6 +201,119 @@ export default function GraphicDesignerBoard({
     count: proyek.filter((p) => p.status === s).length,
   }));
 
+  function renderKartu(p: Proyek) {
+    const konten = kontenDetail(p.id_konten);
+    const naskah = naskahUntuk(p.id_konten);
+    const bisaEdit = canEditAll || p.nama_designer === currentUserNama;
+    return (
+      <Card key={p.id_proyek_designer}>
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div>
+            <p className="font-medium text-denim-900 text-sm">
+              {konten?.judul_konten ?? (
+                <span className="text-muted italic">(konten tidak ditemukan)</span>
+              )}
+            </p>
+            {canEditAll && (
+              <p className="text-xs text-muted font-mono mb-0.5">{p.nama_designer}</p>
+            )}
+            {konten?.ditugaskan_oleh && (
+              <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
+            )}
+          </div>
+          {!bisaEdit && <StatusBadge status={p.status} />}
+        </div>
+
+        {p.brief_desain && (
+          <p className="text-sm text-denim-900 mb-2 whitespace-pre-wrap">
+            <span className="text-xs text-muted block mb-0.5">Brief desain (dari Kadiv):</span>
+            {p.brief_desain}
+          </p>
+        )}
+
+        {naskah?.naskah_caption && (
+          <div className="bg-surface rounded-lg p-3 mb-2">
+            <p className="text-xs text-muted mb-1">
+              Naskah & caption dari Script Writer
+              {naskah.status && naskah.status !== "Disetujui" && (
+                <span className="ml-1 text-gold-500">(status: {naskah.status})</span>
+              )}
+              :
+            </p>
+            <p className="text-sm text-denim-900 whitespace-pre-wrap">{naskah.naskah_caption}</p>
+          </div>
+        )}
+
+        {p.catatan && (
+          <p className="text-sm text-gold-500 mb-2">
+            <span className="text-xs">Catatan Kadiv: </span>
+            {p.catatan}
+          </p>
+        )}
+        {p.link_preview && !bisaEdit && (
+          <a
+            href={p.link_preview}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-denim-500 underline block mb-2"
+          >
+            Lihat preview
+          </a>
+        )}
+
+        {bisaEdit && (
+          <>
+            {(canEditAll || p.nama_designer === currentUserNama) && (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  placeholder="Link preview desain"
+                  value={linkDraft[p.id_proyek_designer] ?? ""}
+                  onChange={(e) =>
+                    setLinkDraft({ ...linkDraft, [p.id_proyek_designer]: e.target.value })
+                  }
+                  className="flex-1 rounded-lg border border-denim-100 px-3 py-1.5 text-xs outline-none focus:border-denim-500"
+                />
+                <button
+                  onClick={() => saveLinkPreview(p.id_proyek_designer)}
+                  disabled={savingId === p.id_proyek_designer}
+                  className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50 whitespace-nowrap"
+                >
+                  Simpan
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-denim-100">
+              <select
+                value={p.status}
+                disabled={savingId === p.id_proyek_designer}
+                onChange={(e) => updateStatus(p.id_proyek_designer, e.target.value)}
+                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {canEditAll && (
+                <button onClick={() => openBrief(p)} className="text-xs text-denim-700 underline">
+                  Edit Brief & Catatan
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(p.id_proyek_designer)}
+                className="text-xs text-red-600 underline"
+              >
+                Hapus
+              </button>
+            </div>
+          </>
+        )}
+      </Card>
+    );
+  }
+
   return (
     <div>
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
@@ -231,126 +352,34 @@ export default function GraphicDesignerBoard({
         </div>
       )}
 
-      {proyek.length === 0 ? (
+      {proyekAktif.length === 0 && proyekSelesai.length === 0 ? (
         <p className="text-sm text-muted">Belum ada proyek yang di-assign.</p>
       ) : (
-        <div className="space-y-3">
-          {proyek.map((p) => {
-            const konten = kontenDetail(p.id_konten);
-            const naskah = naskahUntuk(p.id_konten);
-            const bisaEdit = canEditAll || p.nama_designer === currentUserNama;
-            return (
-              <Card key={p.id_proyek_designer}>
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div>
-                    <p className="font-medium text-denim-900 text-sm">
-                      {konten?.judul_konten ?? p.id_konten}
-                    </p>
-                    {canEditAll && (
-                      <p className="text-xs text-muted font-mono mb-0.5">{p.nama_designer}</p>
-                    )}
-                    {konten?.ditugaskan_oleh && (
-                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
-                    )}
-                  </div>
-                  {!bisaEdit && <StatusBadge status={p.status} />}
+        <>
+          {proyekAktif.length === 0 ? (
+            <p className="text-sm text-muted mb-4">Nggak ada proyek aktif — semua udah disetujui.</p>
+          ) : (
+            <div className="space-y-3">
+              {proyekAktif.map((p) => renderKartu(p))}
+            </div>
+          )}
+
+          {proyekSelesai.length > 0 && (
+            <div className="mt-5">
+              <button
+                onClick={() => setShowSelesai((s) => !s)}
+                className="text-xs font-medium text-denim-700 flex items-center gap-1"
+              >
+                {showSelesai ? "▾" : "▸"} Disetujui ({proyekSelesai.length})
+              </button>
+              {showSelesai && (
+                <div className="space-y-3 mt-3">
+                  {proyekSelesai.map((p) => renderKartu(p))}
                 </div>
-
-                {p.brief_desain && (
-                  <p className="text-sm text-denim-900 mb-2 whitespace-pre-wrap">
-                    <span className="text-xs text-muted block mb-0.5">Brief desain (dari Kadiv):</span>
-                    {p.brief_desain}
-                  </p>
-                )}
-
-                {naskah?.naskah_caption && (
-                  <div className="bg-surface rounded-lg p-3 mb-2">
-                    <p className="text-xs text-muted mb-1">
-                      Naskah & caption dari Script Writer
-                      {naskah.status && naskah.status !== "Disetujui" && (
-                        <span className="ml-1 text-gold-500">(status: {naskah.status})</span>
-                      )}
-                      :
-                    </p>
-                    <p className="text-sm text-denim-900 whitespace-pre-wrap">
-                      {naskah.naskah_caption}
-                    </p>
-                  </div>
-                )}
-
-                {p.catatan && (
-                  <p className="text-sm text-gold-500 mb-2">
-                    <span className="text-xs">Catatan Kadiv: </span>
-                    {p.catatan}
-                  </p>
-                )}
-                {p.link_preview && !bisaEdit && (
-                  <a
-                    href={p.link_preview}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-denim-500 underline block mb-2"
-                  >
-                    Lihat preview
-                  </a>
-                )}
-
-                {bisaEdit && (
-                  <>
-                    {(canEditAll || p.nama_designer === currentUserNama) && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <input
-                          placeholder="Link preview desain"
-                          value={linkDraft[p.id_proyek_designer] ?? ""}
-                          onChange={(e) =>
-                            setLinkDraft({ ...linkDraft, [p.id_proyek_designer]: e.target.value })
-                          }
-                          className="flex-1 rounded-lg border border-denim-100 px-3 py-1.5 text-xs outline-none focus:border-denim-500"
-                        />
-                        <button
-                          onClick={() => saveLinkPreview(p.id_proyek_designer)}
-                          disabled={savingId === p.id_proyek_designer}
-                          className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50 whitespace-nowrap"
-                        >
-                          Simpan
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-denim-100">
-                      <select
-                        value={p.status}
-                        disabled={savingId === p.id_proyek_designer}
-                        onChange={(e) => updateStatus(p.id_proyek_designer, e.target.value)}
-                        className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                      {canEditAll && (
-                        <button
-                          onClick={() => openBrief(p)}
-                          className="text-xs text-denim-700 underline"
-                        >
-                          Edit Brief & Catatan
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(p.id_proyek_designer)}
-                        className="text-xs text-red-600 underline"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </>
-                )}
-              </Card>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {assignFormOpen && (

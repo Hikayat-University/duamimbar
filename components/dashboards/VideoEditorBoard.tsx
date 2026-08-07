@@ -33,6 +33,7 @@ export default function VideoEditorBoard({
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSelesai, setShowSelesai] = useState(false);
 
   const [detailOpenId, setDetailOpenId] = useState<string | null>(null);
   const [detailForm, setDetailForm] = useState(EMPTY_DETAIL_FORM);
@@ -65,6 +66,11 @@ export default function VideoEditorBoard({
   const proyek = filterToOwn
     ? proyekAll.filter((p) => p.nama_editor === currentUserNama)
     : proyekAll;
+
+  // Terbaru di atas, dan yang "Done" dipisah ke bagian collapsible di bawah.
+  const proyekTerurut = [...proyek].reverse();
+  const proyekAktif = proyekTerurut.filter((p) => p.status !== "Done");
+  const proyekSelesai = proyekTerurut.filter((p) => p.status === "Done");
 
   async function updateStatus(id: string, status: string) {
     setSavingId(id);
@@ -146,6 +152,84 @@ export default function VideoEditorBoard({
     count: proyek.filter((p) => p.status === s).length,
   }));
 
+  function renderKartu(p: Proyek) {
+    const konten = kontenDetail(p.id_konten);
+    const bisaUbahStatus = canEditAll || p.nama_editor === currentUserNama;
+    return (
+      <Card key={p.id_proyek_editor}>
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div>
+            <p className="font-medium text-denim-900 text-sm">
+              {konten?.judul_konten ?? (
+                <span className="text-muted italic">(konten tidak ditemukan)</span>
+              )}
+            </p>
+            {canEditAll && (
+              <p className="text-xs text-muted font-mono mb-0.5">{p.nama_editor}</p>
+            )}
+            {konten?.ditugaskan_oleh && (
+              <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
+            )}
+          </div>
+          {!bisaUbahStatus && <StatusBadge status={p.status} />}
+        </div>
+
+        {p.brief && (
+          <p className="text-sm text-denim-900 mb-1.5">
+            <span className="text-xs text-muted">Brief: </span>
+            {p.brief}
+          </p>
+        )}
+        {p.link_video_mentah && (
+          <a
+            href={p.link_video_mentah}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-denim-500 underline block mb-1.5"
+          >
+            Buka link video mentah
+          </a>
+        )}
+        {p.catatan && <p className="text-sm text-muted mb-2">{p.catatan}</p>}
+
+        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-denim-100 flex-wrap">
+          {bisaUbahStatus && (
+            <div className="flex items-center gap-2">
+              <select
+                value={p.status}
+                disabled={savingId === p.id_proyek_editor}
+                onChange={(e) => updateStatus(p.id_proyek_editor, e.target.value)}
+                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {savingId === p.id_proyek_editor && (
+                <span className="text-xs text-muted">Menyimpan...</span>
+              )}
+            </div>
+          )}
+          {canEditAll && (
+            <button onClick={() => openDetail(p)} className="text-xs text-denim-700 underline">
+              Edit Brief & Link
+            </button>
+          )}
+          {bisaUbahStatus && (
+            <button
+              onClick={() => handleDelete(p.id_proyek_editor)}
+              className="text-xs text-red-600 underline"
+            >
+              Hapus
+            </button>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div>
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
@@ -165,89 +249,30 @@ export default function VideoEditorBoard({
         </div>
       )}
 
-      {proyek.length === 0 ? (
+      {proyekAktif.length === 0 && proyekSelesai.length === 0 ? (
         <p className="text-sm text-muted">Belum ada proyek yang di-assign.</p>
       ) : (
-        <div className="space-y-3">
-          {proyek.map((p) => {
-            const konten = kontenDetail(p.id_konten);
-            const bisaUbahStatus = canEditAll || p.nama_editor === currentUserNama;
-            return (
-              <Card key={p.id_proyek_editor}>
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div>
-                    <p className="font-medium text-denim-900 text-sm">
-                      {konten?.judul_konten ?? p.id_konten}
-                    </p>
-                    {canEditAll && (
-                      <p className="text-xs text-muted font-mono mb-0.5">{p.nama_editor}</p>
-                    )}
-                    {konten?.ditugaskan_oleh && (
-                      <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
-                    )}
-                  </div>
-                  {!bisaUbahStatus && <StatusBadge status={p.status} />}
-                </div>
+        <>
+          {proyekAktif.length === 0 ? (
+            <p className="text-sm text-muted mb-4">Nggak ada proyek aktif — semua udah Done.</p>
+          ) : (
+            <div className="space-y-3">{proyekAktif.map((p) => renderKartu(p))}</div>
+          )}
 
-                {p.brief && (
-                  <p className="text-sm text-denim-900 mb-1.5">
-                    <span className="text-xs text-muted">Brief: </span>
-                    {p.brief}
-                  </p>
-                )}
-                {p.link_video_mentah && (
-                  <a
-                    href={p.link_video_mentah}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-denim-500 underline block mb-1.5"
-                  >
-                    Buka link video mentah
-                  </a>
-                )}
-                {p.catatan && <p className="text-sm text-muted mb-2">{p.catatan}</p>}
-
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-denim-100 flex-wrap">
-                  {bisaUbahStatus && (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={p.status}
-                        disabled={savingId === p.id_proyek_editor}
-                        onChange={(e) => updateStatus(p.id_proyek_editor, e.target.value)}
-                        className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                      {savingId === p.id_proyek_editor && (
-                        <span className="text-xs text-muted">Menyimpan...</span>
-                      )}
-                    </div>
-                  )}
-                  {canEditAll && (
-                    <button
-                      onClick={() => openDetail(p)}
-                      className="text-xs text-denim-700 underline"
-                    >
-                      Edit Brief & Link
-                    </button>
-                  )}
-                  {bisaUbahStatus && (
-                    <button
-                      onClick={() => handleDelete(p.id_proyek_editor)}
-                      className="text-xs text-red-600 underline"
-                    >
-                      Hapus
-                    </button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+          {proyekSelesai.length > 0 && (
+            <div className="mt-5">
+              <button
+                onClick={() => setShowSelesai((s) => !s)}
+                className="text-xs font-medium text-denim-700 flex items-center gap-1"
+              >
+                {showSelesai ? "▾" : "▸"} Done ({proyekSelesai.length})
+              </button>
+              {showSelesai && (
+                <div className="space-y-3 mt-3">{proyekSelesai.map((p) => renderKartu(p))}</div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {detailOpenId && (
