@@ -24,6 +24,7 @@ const COLUMNS = [
   "assigned_script_writer",
   "assigned_graphic_designer",
   "ditugaskan_oleh",
+  "brief_editor",
 ];
 
 async function requireKadivSocmed() {
@@ -58,12 +59,21 @@ async function requireCanPatchKonten(updateKeys: string[]) {
  * Urutan kolom: id_proyek_editor, id_konten, nama_editor, status, brief,
  * link_video_mentah, catatan, last_updated.
  */
-async function syncEditorAssignment(idKonten: string, namaEditor: string, judulKonten?: string) {
+async function syncEditorAssignment(
+  idKonten: string,
+  namaEditor: string,
+  judulKonten?: string,
+  briefEditor?: string
+) {
   if (!namaEditor) return;
   try {
     await updateSheetRow(EDITOR_SHEET_ID, "id_konten", idKonten, {
       nama_editor: namaEditor,
       last_updated: new Date().toISOString(),
+      // Cuma nimpa brief kalau Kadiv beneran ngetik sesuatu di form Konten
+      // — kalau kosong, JANGAN sentuh, biar nggak ngerusak brief yang udah
+      // diedit manual lewat "Edit Brief & Link" di dashboard Video Editor.
+      ...(briefEditor ? { brief: briefEditor } : {}),
     });
   } catch {
     await appendSheetRow(EDITOR_SHEET_ID, [
@@ -71,7 +81,7 @@ async function syncEditorAssignment(idKonten: string, namaEditor: string, judulK
       idKonten,
       namaEditor,
       "Draf",
-      "",
+      briefEditor ?? "",
       "",
       "",
       new Date().toISOString(),
@@ -135,7 +145,9 @@ export async function POST(req: NextRequest) {
   });
   await appendSheetRow(SHEET_ID, values);
 
-  if (body.assigned_editor) await syncEditorAssignment(idKonten, body.assigned_editor, body.judul_konten);
+  if (body.assigned_editor) {
+    await syncEditorAssignment(idKonten, body.assigned_editor, body.judul_konten, body.brief_editor);
+  }
   if (body.assigned_script_writer) {
     await syncWriterAssignment(idKonten, body.assigned_script_writer, body.judul_konten);
   }
@@ -158,7 +170,7 @@ export async function PATCH(req: NextRequest) {
   });
 
   if (updates.assigned_editor) {
-    await syncEditorAssignment(id_konten, updates.assigned_editor, updates.judul_konten);
+    await syncEditorAssignment(id_konten, updates.assigned_editor, updates.judul_konten, updates.brief_editor);
   }
   if (updates.assigned_script_writer) {
     await syncWriterAssignment(id_konten, updates.assigned_script_writer, updates.judul_konten);
