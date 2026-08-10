@@ -97,6 +97,15 @@ export async function PATCH(req: NextRequest) {
         { status: 403 }
       );
     }
+    // "Revisi" & "Disetujui" itu VERDICT Kadiv -- designer cuma boleh maju
+    // sampai "Review" (submit buat direview), nggak boleh nge-approve/
+    // nolak desainnya sendiri.
+    if (rest.status !== undefined && !["Belum Dikerjakan", "Proses", "Review"].includes(rest.status)) {
+      return NextResponse.json(
+        { error: "Status itu cuma bisa diubah Kadiv SocMed (hasil review)." },
+        { status: 403 }
+      );
+    }
   } else if (brief_desain !== undefined) {
     updates.brief_desain = brief_desain;
   }
