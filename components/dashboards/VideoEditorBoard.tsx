@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Card, StatusBadge } from "@/components/ui/Card";
+import StatusStepper from "@/components/ui/StatusStepper";
 
 const STATUS_OPTIONS = ["Draf", "Edited", "Revisi", "Done"];
+// Tahap "jalan maju" buat tracker -- "Revisi" sengaja nggak masuk sini,
+// itu ditampilin sebagai alert terpisah (bukan langkah maju, tapi "dibalikin").
+const HAPPY_PATH = ["Draf", "Edited", "Done"];
 
 type Proyek = {
   id_proyek_editor: string;
@@ -160,6 +164,7 @@ export default function VideoEditorBoard({
   function renderKartu(p: Proyek) {
     const konten = kontenDetail(p.id_konten);
     const bisaUbahStatus = canEditAll || p.nama_editor === currentUserNama;
+    const isRevisi = p.status === "Revisi";
     return (
       <Card key={p.id_proyek_editor}>
         <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -176,7 +181,6 @@ export default function VideoEditorBoard({
               <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
             )}
           </div>
-          {!bisaUbahStatus && <StatusBadge status={p.status} />}
         </div>
 
         {konten?.tanggal_publish && (
@@ -202,35 +206,79 @@ export default function VideoEditorBoard({
         )}
         {p.catatan && <p className="text-sm text-muted mb-2">{p.catatan}</p>}
 
+        {/* Tracker kayak "Pesanan Saya" Shopee -- posisi sekarang di mana. */}
+        {!isRevisi && (
+          <div className="my-2">
+            <StatusStepper stages={HAPPY_PATH} current={p.status} />
+          </div>
+        )}
+        {isRevisi && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 my-2">
+            <p className="text-xs font-medium text-red-700">⚠ Revisi diminta Kadiv</p>
+            {p.catatan && <p className="text-xs text-red-600 mt-0.5">{p.catatan}</p>}
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mt-2 pt-2 border-t border-denim-100 flex-wrap">
-          {bisaUbahStatus && (
-            <div className="flex items-center gap-2">
-              <select
-                value={p.status}
-                disabled={savingId === p.id_proyek_editor}
-                onChange={(e) => updateStatus(p.id_proyek_editor, e.target.value)}
-                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              {savingId === p.id_proyek_editor && (
-                <span className="text-xs text-muted">Menyimpan...</span>
-              )}
-            </div>
-          )}
+          {/* Kadiv: tombol verdict jelas, bukan dropdown bebas */}
           {canEditAll && (
-            <button onClick={() => openDetail(p)} className="text-xs text-denim-700 underline">
-              Edit Brief & Link
-            </button>
+            <>
+              <button
+                onClick={() => updateStatus(p.id_proyek_editor, "Done")}
+                disabled={savingId === p.id_proyek_editor || p.status === "Done"}
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full disabled:opacity-40"
+              >
+                ✓ Setujui
+              </button>
+              <button
+                onClick={() => updateStatus(p.id_proyek_editor, "Revisi")}
+                disabled={savingId === p.id_proyek_editor || p.status === "Revisi"}
+                className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-full disabled:opacity-40"
+              >
+                Minta Revisi
+              </button>
+              <button onClick={() => openDetail(p)} className="text-xs text-denim-700 underline">
+                Edit Brief & Link
+              </button>
+            </>
+          )}
+
+          {/* Editor sendiri: cuma bisa maju sampai "Edited" (submit), atau
+              "kirim ulang" abis direvisi -- bukan nge-approve diri sendiri. */}
+          {!canEditAll && bisaUbahStatus && (
+            <>
+              {p.status === "Draf" && (
+                <button
+                  onClick={() => updateStatus(p.id_proyek_editor, "Edited")}
+                  disabled={savingId === p.id_proyek_editor}
+                  className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                >
+                  Tandai Sudah Diedit
+                </button>
+              )}
+              {isRevisi && (
+                <button
+                  onClick={() => updateStatus(p.id_proyek_editor, "Edited")}
+                  disabled={savingId === p.id_proyek_editor}
+                  className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                >
+                  Sudah Direvisi, Kirim Ulang
+                </button>
+              )}
+              {p.status === "Edited" && (
+                <span className="text-xs text-muted">Menunggu review Kadiv...</span>
+              )}
+              {p.status === "Done" && <StatusBadge status={p.status} />}
+            </>
+          )}
+
+          {savingId === p.id_proyek_editor && (
+            <span className="text-xs text-muted">Menyimpan...</span>
           )}
           {bisaUbahStatus && (
             <button
               onClick={() => handleDelete(p.id_proyek_editor)}
-              className="text-xs text-red-600 underline"
+              className="text-xs text-red-600 underline ml-auto"
             >
               Hapus
             </button>

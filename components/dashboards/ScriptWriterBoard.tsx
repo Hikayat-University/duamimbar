@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Card, StatusBadge } from "@/components/ui/Card";
+import StatusStepper from "@/components/ui/StatusStepper";
 
 const STATUS_OPTIONS = ["Menulis", "Review", "Revisi", "Disetujui"];
+const HAPPY_PATH = ["Menulis", "Review", "Disetujui"];
 
 type Proyek = {
   id_proyek_writer: string;
@@ -180,6 +182,7 @@ export default function ScriptWriterBoard({
   function renderKartu(p: Proyek) {
     const konten = kontenDetail(p.id_konten);
     const bisaEdit = canEditAll || p.nama_writer === currentUserNama;
+    const isRevisi = p.status === "Revisi";
     const d = draft[p.id_proyek_writer] ?? { naskah_caption: "", jadwal_posting: "" };
 
     return (
@@ -198,7 +201,6 @@ export default function ScriptWriterBoard({
               <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
             )}
           </div>
-          {!bisaEdit && <StatusBadge status={p.status} />}
         </div>
 
         {konten?.tanggal_publish && (
@@ -229,7 +231,19 @@ export default function ScriptWriterBoard({
           </a>
         )}
 
-        {p.catatan && (
+        {/* Tracker kayak "Pesanan Saya" Shopee -- posisi sekarang di mana. */}
+        {!isRevisi && (
+          <div className="my-2">
+            <StatusStepper stages={HAPPY_PATH} current={p.status} />
+          </div>
+        )}
+        {isRevisi && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 my-2">
+            <p className="text-xs font-medium text-red-700">⚠ Revisi diminta Kadiv</p>
+            {p.catatan && <p className="text-xs text-red-600 mt-0.5">{p.catatan}</p>}
+          </div>
+        )}
+        {!isRevisi && p.catatan && (
           <p className="text-sm text-gold-500 mb-2">
             <span className="text-xs">Catatan Kadiv: </span>
             {p.catatan}
@@ -273,26 +287,62 @@ export default function ScriptWriterBoard({
               >
                 {savingId === p.id_proyek_writer ? "Menyimpan..." : "Simpan Naskah"}
               </button>
-              <select
-                value={p.status}
-                disabled={savingId === p.id_proyek_writer}
-                onChange={(e) => updateStatus(p.id_proyek_writer, e.target.value)}
-                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+
+              {/* Kadiv: tombol verdict jelas, bukan dropdown bebas */}
               {canEditAll && (
-                <button onClick={() => openFeedback(p)} className="text-xs text-denim-700 underline">
-                  Beri Catatan
-                </button>
+                <>
+                  <button
+                    onClick={() => updateStatus(p.id_proyek_writer, "Disetujui")}
+                    disabled={savingId === p.id_proyek_writer || p.status === "Disetujui"}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full disabled:opacity-40"
+                  >
+                    ✓ Setujui
+                  </button>
+                  <button
+                    onClick={() => updateStatus(p.id_proyek_writer, "Revisi")}
+                    disabled={savingId === p.id_proyek_writer || isRevisi}
+                    className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-full disabled:opacity-40"
+                  >
+                    Minta Revisi
+                  </button>
+                  <button onClick={() => openFeedback(p)} className="text-xs text-denim-700 underline">
+                    Beri Catatan
+                  </button>
+                </>
               )}
+
+              {/* Writer sendiri: maju sampai "Review" (submit), atau kirim
+                  ulang abis direvisi -- bukan nge-approve diri sendiri. */}
+              {!canEditAll && (
+                <>
+                  {p.status === "Menulis" && (
+                    <button
+                      onClick={() => updateStatus(p.id_proyek_writer, "Review")}
+                      disabled={savingId === p.id_proyek_writer}
+                      className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                    >
+                      Submit buat Review
+                    </button>
+                  )}
+                  {isRevisi && (
+                    <button
+                      onClick={() => updateStatus(p.id_proyek_writer, "Review")}
+                      disabled={savingId === p.id_proyek_writer}
+                      className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                    >
+                      Sudah Direvisi, Kirim Ulang
+                    </button>
+                  )}
+                  {p.status === "Review" && (
+                    <span className="text-xs text-muted">Menunggu review Kadiv...</span>
+                  )}
+                  {p.status === "Disetujui" && <StatusBadge status={p.status} />}
+                </>
+              )}
+
               <button
                 onClick={() => handleDelete(p.id_proyek_writer)}
-                className="text-xs text-red-600 underline"
+                className="text-xs text-red-600 underline ml-auto"
               >
                 Hapus
               </button>

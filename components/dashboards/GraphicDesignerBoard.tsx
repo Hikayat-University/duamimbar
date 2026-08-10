@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Card, StatusBadge } from "@/components/ui/Card";
+import StatusStepper from "@/components/ui/StatusStepper";
 
 const STATUS_OPTIONS = ["Belum Dikerjakan", "Proses", "Review", "Revisi", "Disetujui"];
+const HAPPY_PATH = ["Belum Dikerjakan", "Proses", "Review", "Disetujui"];
 
 type Proyek = {
   id_proyek_designer: string;
@@ -205,6 +207,7 @@ export default function GraphicDesignerBoard({
     const konten = kontenDetail(p.id_konten);
     const naskah = naskahUntuk(p.id_konten);
     const bisaEdit = canEditAll || p.nama_designer === currentUserNama;
+    const isRevisi = p.status === "Revisi";
     return (
       <Card key={p.id_proyek_designer}>
         <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -221,7 +224,6 @@ export default function GraphicDesignerBoard({
               <p className="text-xs text-muted">Ditugaskan oleh: {konten.ditugaskan_oleh}</p>
             )}
           </div>
-          {!bisaEdit && <StatusBadge status={p.status} />}
         </div>
 
         {p.brief_desain && (
@@ -244,7 +246,19 @@ export default function GraphicDesignerBoard({
           </div>
         )}
 
-        {p.catatan && (
+        {/* Tracker kayak "Pesanan Saya" Shopee -- posisi sekarang di mana. */}
+        {!isRevisi && (
+          <div className="my-2">
+            <StatusStepper stages={HAPPY_PATH} current={p.status} />
+          </div>
+        )}
+        {isRevisi && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 my-2">
+            <p className="text-xs font-medium text-red-700">⚠ Revisi diminta Kadiv</p>
+            {p.catatan && <p className="text-xs text-red-600 mt-0.5">{p.catatan}</p>}
+          </div>
+        )}
+        {!isRevisi && p.catatan && (
           <p className="text-sm text-gold-500 mb-2">
             <span className="text-xs">Catatan Kadiv: </span>
             {p.catatan}
@@ -284,26 +298,72 @@ export default function GraphicDesignerBoard({
             )}
 
             <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-denim-100">
-              <select
-                value={p.status}
-                disabled={savingId === p.id_proyek_designer}
-                onChange={(e) => updateStatus(p.id_proyek_designer, e.target.value)}
-                className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              {/* Kadiv: tombol verdict jelas, bukan dropdown bebas */}
               {canEditAll && (
-                <button onClick={() => openBrief(p)} className="text-xs text-denim-700 underline">
-                  Edit Brief & Catatan
-                </button>
+                <>
+                  <button
+                    onClick={() => updateStatus(p.id_proyek_designer, "Disetujui")}
+                    disabled={savingId === p.id_proyek_designer || p.status === "Disetujui"}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full disabled:opacity-40"
+                  >
+                    ✓ Setujui
+                  </button>
+                  <button
+                    onClick={() => updateStatus(p.id_proyek_designer, "Revisi")}
+                    disabled={savingId === p.id_proyek_designer || isRevisi}
+                    className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-full disabled:opacity-40"
+                  >
+                    Minta Revisi
+                  </button>
+                  <button onClick={() => openBrief(p)} className="text-xs text-denim-700 underline">
+                    Edit Brief & Catatan
+                  </button>
+                </>
               )}
+
+              {/* Designer sendiri: maju sampai "Review" (submit), atau
+                  kirim ulang abis direvisi -- bukan nge-approve diri sendiri. */}
+              {!canEditAll && (
+                <>
+                  {(p.status === "Belum Dikerjakan" || p.status === "Proses") && (
+                    <select
+                      value={p.status}
+                      disabled={savingId === p.id_proyek_designer}
+                      onChange={(e) => updateStatus(p.id_proyek_designer, e.target.value)}
+                      className="text-xs font-mono rounded-full border border-denim-100 px-3 py-1.5 bg-white outline-none focus:border-denim-500 disabled:opacity-50"
+                    >
+                      <option value="Belum Dikerjakan">Belum Dikerjakan</option>
+                      <option value="Proses">Proses</option>
+                    </select>
+                  )}
+                  {(p.status === "Belum Dikerjakan" || p.status === "Proses") && (
+                    <button
+                      onClick={() => updateStatus(p.id_proyek_designer, "Review")}
+                      disabled={savingId === p.id_proyek_designer}
+                      className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                    >
+                      Submit buat Review
+                    </button>
+                  )}
+                  {isRevisi && (
+                    <button
+                      onClick={() => updateStatus(p.id_proyek_designer, "Review")}
+                      disabled={savingId === p.id_proyek_designer}
+                      className="text-xs bg-denim-700 text-white px-3 py-1.5 rounded-full disabled:opacity-50"
+                    >
+                      Sudah Direvisi, Kirim Ulang
+                    </button>
+                  )}
+                  {p.status === "Review" && (
+                    <span className="text-xs text-muted">Menunggu review Kadiv...</span>
+                  )}
+                  {p.status === "Disetujui" && <StatusBadge status={p.status} />}
+                </>
+              )}
+
               <button
                 onClick={() => handleDelete(p.id_proyek_designer)}
-                className="text-xs text-red-600 underline"
+                className="text-xs text-red-600 underline ml-auto"
               >
                 Hapus
               </button>
