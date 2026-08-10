@@ -15,7 +15,12 @@ type Proyek = {
   catatan: string;
   last_updated: string;
 };
-type Konten = { id_konten: string; judul_konten: string; ditugaskan_oleh: string };
+type Konten = {
+  id_konten: string;
+  judul_konten: string;
+  ditugaskan_oleh: string;
+  tanggal_publish: string;
+};
 
 const EMPTY_DETAIL_FORM = { brief: "", link_video_mentah: "", catatan: "" };
 
@@ -174,6 +179,11 @@ export default function VideoEditorBoard({
           {!bisaUbahStatus && <StatusBadge status={p.status} />}
         </div>
 
+        {konten?.tanggal_publish && (
+          <p className="text-sm text-red-600 mb-1 font-medium">
+            Target publish: {konten.tanggal_publish}
+          </p>
+        )}
         {p.brief && (
           <p className="text-sm text-denim-900 mb-1.5">
             <span className="text-xs text-muted">Brief: </span>

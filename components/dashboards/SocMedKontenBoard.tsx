@@ -17,6 +17,7 @@ type Konten = {
   gaya_copywriting: string;
   assigned_script_writer: string;
   assigned_graphic_designer: string;
+  brief_editor: string;
 };
 type Kanal = { id_kanal: string; nama_kanal: string };
 type Person = { id: string; nama: string };
@@ -32,6 +33,7 @@ const EMPTY_FORM = {
   gaya_copywriting: "",
   assigned_script_writer: "",
   assigned_graphic_designer: "",
+  brief_editor: "",
 };
 
 export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
@@ -100,6 +102,7 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       gaya_copywriting: k.gaya_copywriting ?? "",
       assigned_script_writer: k.assigned_script_writer ?? "",
       assigned_graphic_designer: k.assigned_graphic_designer ?? "",
+      brief_editor: k.brief_editor ?? "",
     });
     setFormOpen(true);
   }
@@ -320,6 +323,17 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                   </option>
                 ))}
               </select>
+              <textarea
+                placeholder="Brief untuk Video Editor (opsional — mis. timestamp footage yang dipakai)"
+                value={form.brief_editor}
+                onChange={(e) => setForm({ ...form, brief_editor: e.target.value })}
+                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 mt-2"
+                rows={2}
+              />
+              <p className="text-[11px] text-muted mt-1">
+                Kosongin field ini kalau nggak mau nimpa brief yang udah diisi manual di dashboard
+                Video Editor.
+              </p>
             </div>
 
             <input
