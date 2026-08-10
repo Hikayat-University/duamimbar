@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 const SHEET_ID = process.env.SHEET_ID_SOCMED_KONTEN!;
 const EDITOR_SHEET_ID = process.env.SHEET_ID_VIDEO_EDITOR_PROYEK!;
 const WRITER_SHEET_ID = process.env.SHEET_ID_SOCMED_PROYEK_WRITER!;
+const DESIGNER_SHEET_ID = process.env.SHEET_ID_SOCMED_PROYEK_DESIGNER!;
 
 const COLUMNS = [
   "id_konten",
@@ -25,6 +26,7 @@ const COLUMNS = [
   "assigned_graphic_designer",
   "ditugaskan_oleh",
   "brief_editor",
+  "brief_desain",
 ];
 
 async function requireKadivSocmed() {
@@ -96,6 +98,46 @@ async function syncEditorAssignment(
 }
 
 /**
+ * Sinkronkan assignment ke sheet Proyek Graphic Designer LANGSUNG dari form
+ * Konten -- ini beda dari mekanisme lama (auto-assign pas Script Writer
+ * nandain status Review), yang tetap jalan sebagai pelengkap. Sekarang
+ * Kadiv bisa langsung assign+brief Designer dari awal tanpa nunggu Script
+ * Writer sama sekali, cocok buat konten yang emang nggak butuh naskah.
+ */
+async function syncDesignerAssignment(
+  idKonten: string,
+  namaDesigner: string,
+  judulKonten?: string,
+  briefDesain?: string
+) {
+  if (!namaDesigner) return;
+  try {
+    await updateSheetRow(DESIGNER_SHEET_ID, "id_konten", idKonten, {
+      nama_designer: namaDesigner,
+      last_updated: new Date().toISOString(),
+      ...(briefDesain ? { brief_desain: briefDesain } : {}),
+    });
+  } catch {
+    await appendSheetRow(DESIGNER_SHEET_ID, [
+      crypto.randomUUID(),
+      idKonten,
+      namaDesigner,
+      "Belum Dikerjakan",
+      briefDesain ?? "",
+      "",
+      "",
+      new Date().toISOString(),
+    ]);
+  }
+
+  notifyUserByName(namaDesigner, {
+    title: "Proyek desain baru buat kamu",
+    message: `Kamu di-assign desain untuk konten "${judulKonten ?? "-"}".`,
+    link: "/my-project?tab=proyek_graphic_designer",
+  });
+}
+
+/**
  * Sinkronkan assignment ke sheet Proyek Script Writer.
  * Urutan kolom: id_proyek_writer, id_konten, nama_writer, status,
  * naskah_caption, jadwal_posting, catatan, last_updated.
@@ -151,6 +193,9 @@ export async function POST(req: NextRequest) {
   if (body.assigned_script_writer) {
     await syncWriterAssignment(idKonten, body.assigned_script_writer, body.judul_konten);
   }
+  if (body.assigned_graphic_designer) {
+    await syncDesignerAssignment(idKonten, body.assigned_graphic_designer, body.judul_konten, body.brief_desain);
+  }
 
   return NextResponse.json({ success: true });
 }
@@ -174,6 +219,14 @@ export async function PATCH(req: NextRequest) {
   }
   if (updates.assigned_script_writer) {
     await syncWriterAssignment(id_konten, updates.assigned_script_writer, updates.judul_konten);
+  }
+  if (updates.assigned_graphic_designer) {
+    await syncDesignerAssignment(
+      id_konten,
+      updates.assigned_graphic_designer,
+      updates.judul_konten,
+      updates.brief_desain
+    );
   }
 
   return NextResponse.json({ success: true });
