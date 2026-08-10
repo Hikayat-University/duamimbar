@@ -122,6 +122,16 @@ export async function PATCH(req: NextRequest) {
       );
     }
     idKonten = row.id_konten;
+
+    // "Revisi" & "Disetujui" itu VERDICT Kadiv -- writer cuma boleh maju
+    // sampai "Review" (submit buat direview), nggak boleh nge-approve/
+    // nolak naskahnya sendiri.
+    if (updates.status !== undefined && !["Menulis", "Review"].includes(updates.status)) {
+      return NextResponse.json(
+        { error: "Status itu cuma bisa diubah Kadiv SocMed (hasil review)." },
+        { status: 403 }
+      );
+    }
   }
 
   await updateSheetRow(SHEET_ID, "id_proyek_writer", id_proyek_writer, {
