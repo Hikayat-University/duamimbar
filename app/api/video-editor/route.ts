@@ -70,6 +70,15 @@ export async function PATCH(req: NextRequest) {
         { status: 403 }
       );
     }
+    // "Revisi" & "Done" itu VERDICT Kadiv (setuju/nggak) -- editor cuma
+    // boleh maju sampai "Edited" (submit buat direview), nggak boleh
+    // nge-approve/nolak proyeknya sendiri.
+    if (status !== undefined && !["Draf", "Edited"].includes(status)) {
+      return NextResponse.json(
+        { error: "Status itu cuma bisa diubah Kadiv SocMed (hasil review)." },
+        { status: 403 }
+      );
+    }
   }
 
   const updates: Record<string, string> = {
