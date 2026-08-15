@@ -1,8 +1,6 @@
 import { getUserProfile } from "@/lib/supabase/server";
 import { getAccessibleDashboards } from "@/lib/permissions";
 import { DASHBOARD_CONFIG } from "@/lib/dashboardConfig";
-import { DASHBOARD_ICONS } from "@/lib/dashboardIcons";
-import { Eye, Check } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import BottomTabBar from "@/components/BottomTabBar";
 import DataTable from "@/components/dashboards/DataTable";
@@ -52,70 +50,32 @@ export default async function MyPage({
         <p className="text-muted text-sm mb-6">{profile.divisi}</p>
 
         {dashboards.length > 1 && (
-          active?.key === "directors_overview" ? (
-            <div className="flex gap-2 overflow-x-auto pb-1 mb-6 -mx-1 px-1">
-              {dashboards.map((d) => {
-                const c = DASHBOARD_CONFIG[d.key];
-                const isActive = d.key === active?.key;
-                return (
-                  <a
-                    key={d.key}
-                    href={`/my-project?tab=${d.key}`}
-                    className={`shrink-0 text-sm px-3.5 py-2 rounded-full whitespace-nowrap transition-colors ${
-                      isActive
-                        ? "bg-denim-900 text-white"
-                        : "bg-denim-50 text-denim-700 hover:bg-denim-100"
-                    }`}
-                  >
-                    {c.title}
-                  </a>
-                );
-              })}
-            </div>
-          ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-7">
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-6 -mx-1 px-1">
             {dashboards.map((d) => {
               const c = DASHBOARD_CONFIG[d.key];
-              const Icon = DASHBOARD_ICONS[d.key];
               const isActive = d.key === active?.key;
               return (
                 <a
                   key={d.key}
                   href={`/my-project?tab=${d.key}`}
-                  className={`relative flex flex-col justify-between h-28 sm:h-32 rounded-2xl p-4 shadow-md transition-colors ${
+                  className={`shrink-0 text-sm px-3.5 py-2 rounded-full whitespace-nowrap transition-colors ${
                     isActive
-                      ? "bg-denim-900"
-                      : "bg-denim-700 hover:bg-denim-500"
+                      ? "bg-denim-900 text-white"
+                      : "bg-denim-50 text-denim-700 hover:bg-denim-100"
                   }`}
                 >
-                  {isActive && (
-                    <span className="absolute top-3 right-3 flex items-center justify-center w-5 h-5 rounded-full bg-gold-400">
-                      <Check size={12} strokeWidth={3} className="text-denim-900" />
-                    </span>
-                  )}
-                  {!d.canEdit && !isActive && (
-                    <Eye size={14} strokeWidth={1.75} className="absolute top-3.5 right-3.5 text-white/50" />
-                  )}
-
-                  <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/15">
-                    <Icon size={18} strokeWidth={1.75} className="text-white" />
-                  </span>
-
-                  <span className="text-white text-sm font-medium leading-tight pr-4">
-                    {c.title}
-                  </span>
+                  {c.title}
                 </a>
               );
             })}
           </div>
-          )
         )}
 
         {config && (
           <section>
             <h2 className="font-display text-lg text-denim-700 mb-3">{config.title}</h2>
             {active?.key === "directors_overview" ? (
-              <DirectorsOverviewBoard />
+              <DirectorsOverviewBoard currentUserNama={profile.nama} />
             ) : active?.key === "video_editor" ? (
               <VideoEditorBoard
                 currentUserNama={profile.nama}
