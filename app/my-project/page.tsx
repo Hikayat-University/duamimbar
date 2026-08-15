@@ -10,9 +10,7 @@ import BusinessFlowBoard from "@/components/dashboards/BusinessFlowBoard";
 import CashFlowBoard from "@/components/dashboards/CashFlowBoard";
 import BudgetPlannerBoard from "@/components/dashboards/BudgetPlannerBoard";
 import HutangPiutangBoard from "@/components/dashboards/HutangPiutangBoard";
-import SocMedKanalBoard from "@/components/dashboards/SocMedKanalBoard";
-import SocMedKontenBoard from "@/components/dashboards/SocMedKontenBoard";
-import SocMedStatistikBoard from "@/components/dashboards/SocMedStatistikBoard";
+import SocMedHubBoard from "@/components/dashboards/SocMedHubBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
 import AdminPostingBoard from "@/components/dashboards/AdminPostingBoard";
@@ -115,12 +113,8 @@ export default async function MyPage({
               <BudgetPlannerBoard canEdit={active.canEdit} />
             ) : active?.key === "finance_hutang" ? (
               <HutangPiutangBoard canEdit={active.canEdit} />
-            ) : active?.key === "socmed_kanal" ? (
-              <SocMedKanalBoard canEdit={active.canEdit} />
-            ) : active?.key === "socmed_overview" ? (
-              <SocMedKontenBoard canEdit={active.canEdit} />
-            ) : active?.key === "socmed_statistik" ? (
-              <SocMedStatistikBoard canEdit={active.canEdit} />
+            ) : active?.key === "socmed_hub" ? (
+              <SocMedHubBoard canEdit={active.canEdit} />
             ) : (
               <DataTable sheetEnvVar={config.sheetEnvVar} emptyLabel={config.emptyLabel} />
             )}
