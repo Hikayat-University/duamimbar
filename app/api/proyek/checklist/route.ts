@@ -32,12 +32,17 @@ export async function GET(req: NextRequest) {
   let rows: Record<string, string>[];
   try {
     rows = await getSheetRowsByTab(SHEET_ID_CHECKLIST, tab);
-  } catch {
+  } catch (err: any) {
+    const detail: string = err?.response?.data?.error?.message ?? err?.message ?? String(err);
+    const isTabMissing = /unable to parse range|not found/i.test(detail);
+
     return NextResponse.json(
       {
-        error: `Tab checklist untuk "${tab}" tidak ditemukan. Pastikan nama tab di spreadsheet checklist sama persis dengan nama proyek.`,
+        error: isTabMissing
+          ? `Tab checklist untuk "${tab}" tidak ditemukan. Pastikan nama tab di spreadsheet checklist sama persis dengan nama proyek.`
+          : `Gagal mengambil checklist dari Google Sheets: ${detail}`,
       },
-      { status: 404 }
+      { status: isTabMissing ? 404 : 500 }
     );
   }
 
