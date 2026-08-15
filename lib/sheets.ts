@@ -85,6 +85,45 @@ export async function updateSheetRow(
   });
 }
 
+/**
+ * Update sebagian kolom pada satu baris di tab tertentu, dicari berdasarkan
+ * posisi baris (0-based, tidak termasuk header) -- dipakai untuk checklist
+ * yang nggak punya kolom ID unik. Kolom yang tidak disebut di `updates`
+ * tidak akan berubah.
+ */
+export async function updateSheetRowByIndex(
+  spreadsheetId: string,
+  tabName: string,
+  rowIndex: number,
+  updates: Record<string, string>
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const safeTab = tabName.replace(/'/g, "''");
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${safeTab}'!A1:Z1000`,
+  });
+
+  const [header, ...rows] = res.data.values ?? [[]];
+  if (!header) throw new Error("Sheet kosong atau tidak ada header.");
+
+  const currentRow = rows[rowIndex];
+  if (!currentRow) throw new Error(`Baris ke-${rowIndex} tidak ditemukan.`);
+
+  const updatedRow = header.map((col: string, i: number) =>
+    updates[col] !== undefined ? updates[col] : currentRow[i] ?? ""
+  );
+
+  const sheetRowNumber = rowIndex + 2; // +1 header, +1 karena Sheets 1-indexed
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `'${safeTab}'!A${sheetRowNumber}:Z${sheetRowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [updatedRow] },
+  });
+}
+
 /** Hapus satu baris, dicari berdasarkan nilai di kolom tertentu. */
 export async function deleteSheetRow(sheetId: string, matchColumn: string, matchValue: string) {
   const sheets = google.sheets({ version: "v4", auth: getAuth() });

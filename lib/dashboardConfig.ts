@@ -5,7 +5,7 @@ export const DASHBOARD_CONFIG: Record<
   { title: string; sheetEnvVar: string; emptyLabel: string }
 > = {
   directors_overview: {
-    title: "Directors Overview",
+    title: "Proyek Perusahaan",
     sheetEnvVar: "SHEET_ID_PROYEK_PERUSAHAAN",
     emptyLabel: "Belum ada proyek perusahaan tercatat.",
   },

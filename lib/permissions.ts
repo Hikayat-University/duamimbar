@@ -64,7 +64,13 @@ export function getAccessibleDashboards(
     ];
   }
 
-  const tambahan: { key: DashboardKey; canEdit: boolean }[] = [];
+  const tambahan: { key: DashboardKey; canEdit: boolean }[] = [
+    // Proyek Perusahaan (checklist per-item) kebuka buat semua role -- siapa
+    // pun bisa lihat semua proyek, tapi cuma item checklist yang PIC-nya
+    // cocok sama namanya sendiri yang bisa diubah (dicek ulang di server,
+    // bukan cuma di sini).
+    { key: "directors_overview", canEdit: true },
+  ];
   if (aksesTambahan.includes("video_editor_dashboard")) {
     tambahan.push({ key: "video_editor", canEdit: true });
   }
