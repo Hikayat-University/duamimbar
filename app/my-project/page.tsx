@@ -75,7 +75,7 @@ export default async function MyPage({
           <section>
             <h2 className="font-display text-lg text-denim-700 mb-3">{config.title}</h2>
             {active?.key === "directors_overview" ? (
-              <DirectorsOverviewBoard currentUserNama={profile.nama} />
+              <DirectorsOverviewBoard currentUserNama={profile.nama} currentUserRole={profile.role} />
             ) : active?.key === "video_editor" ? (
               <VideoEditorBoard
                 currentUserNama={profile.nama}
