@@ -52,6 +52,27 @@ export default async function MyPage({
         <p className="text-muted text-sm mb-6">{profile.divisi}</p>
 
         {dashboards.length > 1 && (
+          active?.key === "directors_overview" ? (
+            <div className="flex gap-2 overflow-x-auto pb-1 mb-6 -mx-1 px-1">
+              {dashboards.map((d) => {
+                const c = DASHBOARD_CONFIG[d.key];
+                const isActive = d.key === active?.key;
+                return (
+                  <a
+                    key={d.key}
+                    href={`/my-project?tab=${d.key}`}
+                    className={`shrink-0 text-sm px-3.5 py-2 rounded-full whitespace-nowrap transition-colors ${
+                      isActive
+                        ? "bg-denim-900 text-white"
+                        : "bg-denim-50 text-denim-700 hover:bg-denim-100"
+                    }`}
+                  >
+                    {c.title}
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-7">
             {dashboards.map((d) => {
               const c = DASHBOARD_CONFIG[d.key];
@@ -87,6 +108,7 @@ export default async function MyPage({
               );
             })}
           </div>
+          )
         )}
 
         {config && (
