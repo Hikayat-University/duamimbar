@@ -9,9 +9,7 @@ export type Role =
 
 export type DashboardKey =
   | "directors_overview"
-  | "socmed_kanal"
-  | "socmed_overview"
-  | "socmed_statistik"
+  | "socmed_hub"
   | "proyek_script_writer"
   | "proyek_graphic_designer"
   | "video_editor"
@@ -25,7 +23,7 @@ export type DashboardKey =
 /** Dashboard bawaan tiap role di halaman My Page (lihat PRD Bagian 3). */
 const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
   head_director: ["directors_overview"],
-  kadiv_socmed: ["socmed_kanal", "socmed_overview", "socmed_statistik"],
+  kadiv_socmed: ["socmed_hub"],
   script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
   video_editor: ["video_editor"],
@@ -45,9 +43,7 @@ export function getAccessibleDashboards(
 
   if (role === "head_director") {
     const semuaDashboard: DashboardKey[] = [
-      "socmed_kanal",
-      "socmed_overview",
-      "socmed_statistik",
+      "socmed_hub",
       "proyek_script_writer",
       "proyek_graphic_designer",
       "video_editor",
