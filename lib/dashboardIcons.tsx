@@ -18,9 +18,7 @@ import {
 
 export const DASHBOARD_ICONS: Record<DashboardKey, LucideIcon> = {
   directors_overview: LayoutDashboard,
-  socmed_kanal: Radio,
-  socmed_overview: FileText,
-  socmed_statistik: BarChart3,
+  socmed_hub: Radio,
   proyek_script_writer: PenLine,
   proyek_graphic_designer: Palette,
   video_editor: Clapperboard,
