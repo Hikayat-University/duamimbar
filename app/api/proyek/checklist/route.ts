@@ -95,14 +95,15 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  // Cek ulang di server: cuma PIC yang di-assign di baris itu yang boleh ubah
-  // statusnya -- nggak cukup diverifikasi di client saja.
+  // Cek ulang di server: cuma PIC yang di-assign di baris itu (atau Head
+  // Director sebagai override) yang boleh ubah statusnya.
   const rows = await getSheetRowsByTab(SHEET_ID_CHECKLIST, tab);
   const row = rows[rowIndex];
   if (!row) {
     return NextResponse.json({ error: "Item checklist tidak ditemukan." }, { status: 404 });
   }
-  if (!isAssignedTo(row.PIC ?? "", profile.nama)) {
+  const bolehUbah = profile.role === "head_director" || isAssignedTo(row.PIC ?? "", profile.nama);
+  if (!bolehUbah) {
     return NextResponse.json(
       { error: "Kamu bukan PIC untuk item checklist ini." },
       { status: 403 }
