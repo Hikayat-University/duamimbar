@@ -42,7 +42,13 @@ function isAssignedTo(picField: string, nama: string): boolean {
     .includes(target);
 }
 
-export default function DirectorsOverviewBoard({ currentUserNama }: { currentUserNama: string }) {
+export default function DirectorsOverviewBoard({
+  currentUserNama,
+  currentUserRole,
+}: {
+  currentUserNama: string;
+  currentUserRole: string;
+}) {
   const [list, setList] = useState<Proyek[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Proyek | null>(null);
@@ -66,6 +72,7 @@ export default function DirectorsOverviewBoard({ currentUserNama }: { currentUse
         proyek={selected}
         allProyek={list}
         currentUserNama={currentUserNama}
+        currentUserRole={currentUserRole}
         onSelectProyek={setSelected}
         onBack={() => setSelected(null)}
       />
@@ -98,12 +105,14 @@ function ChecklistDetail({
   proyek,
   allProyek,
   currentUserNama,
+  currentUserRole,
   onSelectProyek,
   onBack,
 }: {
   proyek: Proyek;
   allProyek: Proyek[];
   currentUserNama: string;
+  currentUserRole: string;
   onSelectProyek: (p: Proyek) => void;
   onBack: () => void;
 }) {
@@ -315,7 +324,9 @@ function ChecklistDetail({
                     </thead>
                     <tbody>
                       {pageRows.map((r) => {
-                        const assigned = isAssignedTo(r.PIC ?? "", currentUserNama);
+                        const assigned =
+                          currentUserRole === "head_director" ||
+                          isAssignedTo(r.PIC ?? "", currentUserNama);
                         return (
                           <tr key={r.rowIndex} className="border-t border-denim-50 hover:bg-denim-50/40">
                             <td className="px-3 py-2 text-denim-900">{r.Item}</td>
