@@ -23,6 +23,7 @@ type ChecklistRow = {
   Status: string;
   PIC: string;
   Catatan: string;
+  rowIndex: number;
 };
 
 type ChecklistResponse = {
@@ -32,7 +33,16 @@ type ChecklistResponse = {
 
 const PAGE_SIZE = 15;
 
-export default function DirectorsOverviewBoard() {
+// Kolom PIC bisa berisi lebih dari satu nama dipisah "+" (mis. "Titian + Zidan").
+function isAssignedTo(picField: string, nama: string): boolean {
+  const target = nama.trim().toLowerCase();
+  return picField
+    .split("+")
+    .map((s) => s.trim().toLowerCase())
+    .includes(target);
+}
+
+export default function DirectorsOverviewBoard({ currentUserNama }: { currentUserNama: string }) {
   const [list, setList] = useState<Proyek[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Proyek | null>(null);
@@ -55,6 +65,7 @@ export default function DirectorsOverviewBoard() {
       <ChecklistDetail
         proyek={selected}
         allProyek={list}
+        currentUserNama={currentUserNama}
         onSelectProyek={setSelected}
         onBack={() => setSelected(null)}
       />
@@ -86,11 +97,13 @@ export default function DirectorsOverviewBoard() {
 function ChecklistDetail({
   proyek,
   allProyek,
+  currentUserNama,
   onSelectProyek,
   onBack,
 }: {
   proyek: Proyek;
   allProyek: Proyek[];
+  currentUserNama: string;
   onSelectProyek: (p: Proyek) => void;
   onBack: () => void;
 }) {
@@ -100,6 +113,7 @@ function ChecklistDetail({
   const [statusFilter, setStatusFilter] = useState<"all" | "Selesai" | "Belum">("all");
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -138,6 +152,40 @@ function ChecklistDetail({
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  async function toggleStatus(row: ChecklistRow) {
+    if (!data) return;
+    const nextStatus = row.Status === "Selesai" ? "Belum" : "Selesai";
+    setSavingIndex(row.rowIndex);
+    setError(null);
+
+    const prevData = data;
+    setData({
+      ...data,
+      rows: data.rows.map((r) => (r.rowIndex === row.rowIndex ? { ...r, Status: nextStatus } : r)),
+      summary: {
+        ...data.summary,
+        selesai: data.summary.selesai + (nextStatus === "Selesai" ? 1 : -1),
+        belum: data.summary.belum + (nextStatus === "Selesai" ? -1 : 1),
+        persenSelesai: Math.round(
+          ((data.summary.selesai + (nextStatus === "Selesai" ? 1 : -1)) / data.summary.total) * 100
+        ),
+      },
+    });
+
+    const res = await fetch("/api/proyek/checklist", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tab: proyek.nama_proyek, rowIndex: row.rowIndex, status: nextStatus }),
+    });
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Gagal menyimpan perubahan.");
+      setData(prevData);
+    }
+    setSavingIndex(null);
+  }
 
   return (
     <div className="flex gap-4">
@@ -181,7 +229,7 @@ function ChecklistDetail({
         <p className="text-sm text-muted mb-4">{proyek.deskripsi}</p>
 
         {loading && <p className="text-sm text-muted">Memuat checklist...</p>}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
 
         {data && (
           <>
@@ -266,17 +314,31 @@ function ChecklistDetail({
                       </tr>
                     </thead>
                     <tbody>
-                      {pageRows.map((r, i) => (
-                        <tr key={i} className="border-t border-denim-50 hover:bg-denim-50/40">
-                          <td className="px-3 py-2 text-denim-900">{r.Item}</td>
-                          <td className="px-3 py-2 text-muted hidden sm:table-cell">{r.Phase}</td>
-                          <td className="px-3 py-2 text-muted hidden md:table-cell">{r.Section}</td>
-                          <td className="px-3 py-2 text-muted font-mono">{r.PIC}</td>
-                          <td className="px-3 py-2">
-                            <StatusBadge status={r.Status} />
-                          </td>
-                        </tr>
-                      ))}
+                      {pageRows.map((r) => {
+                        const assigned = isAssignedTo(r.PIC ?? "", currentUserNama);
+                        return (
+                          <tr key={r.rowIndex} className="border-t border-denim-50 hover:bg-denim-50/40">
+                            <td className="px-3 py-2 text-denim-900">{r.Item}</td>
+                            <td className="px-3 py-2 text-muted hidden sm:table-cell">{r.Phase}</td>
+                            <td className="px-3 py-2 text-muted hidden md:table-cell">{r.Section}</td>
+                            <td className="px-3 py-2 text-muted font-mono">{r.PIC}</td>
+                            <td className="px-3 py-2">
+                              {assigned ? (
+                                <button
+                                  onClick={() => toggleStatus(r)}
+                                  disabled={savingIndex === r.rowIndex}
+                                  className="disabled:opacity-50"
+                                  title="Kamu di-assign di item ini -- klik buat ubah status"
+                                >
+                                  <StatusBadge status={r.Status} />
+                                </button>
+                              ) : (
+                                <StatusBadge status={r.Status} />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
