@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 
 type Statistik = {
@@ -66,6 +66,7 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   function load() {
     setLoading(true);
@@ -88,6 +89,14 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
   function judulKonten(id: string) {
     return kontenList.find((k) => k.id_konten === id)?.judul_konten ?? "(konten tidak dikenal)";
   }
+
+  const filteredList = useMemo(() => {
+    if (!search.trim()) return list;
+    const q = search.trim().toLowerCase();
+    return list.filter(
+      (s) => judulKonten(s.id_konten).toLowerCase().includes(q) || s.minggu_ke.toLowerCase().includes(q)
+    );
+  }, [list, search, kontenList]);
 
   function openNew() {
     setEditingId(null);
@@ -149,7 +158,19 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
     load();
   }
 
-  if (loading) return <p className="text-sm text-muted">Memuat...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white border border-denim-100 rounded-signature p-4">
+            <div className="h-4 w-1/2 bg-denim-100 rounded mb-2" />
+            <div className="h-3 w-1/3 bg-denim-50 rounded mb-3" />
+            <div className="h-3 w-full bg-denim-50 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -168,11 +189,24 @@ export default function SocMedStatistikBoard({ canEdit }: { canEdit: boolean }) 
         </p>
       )}
 
-      {list.length === 0 ? (
-        <p className="text-sm text-muted">Belum ada data statistik mingguan.</p>
+      {list.length > 0 && (
+        <input
+          placeholder="Cari judul konten atau minggu (mis. W29)..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:w-72 rounded-lg border border-denim-100 px-3 py-1.5 text-sm outline-none focus:border-denim-500 mb-4"
+        />
+      )}
+
+      {filteredList.length === 0 ? (
+        <div className="text-center py-10 border border-dashed border-denim-100 rounded-signature">
+          <p className="text-sm text-muted">
+            {list.length === 0 ? "Belum ada data statistik mingguan." : "Tidak ada data yang cocok."}
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {list.map((s) => (
+          {filteredList.map((s) => (
             <Card key={s.id_statistik}>
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <div>

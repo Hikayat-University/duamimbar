@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, StatusBadge } from "@/components/ui/Card";
 
 const STATUS_OPTIONS = ["Akan", "Sedang", "Siap Post", "Sudah"];
@@ -29,6 +29,7 @@ type Konten = {
 };
 type Kanal = { id_kanal: string; nama_kanal: string };
 type Person = { id: string; nama: string };
+type Statistik = { id_konten: string; minggu_ke: string; engagement_rate: string; views: string };
 
 const EMPTY_FORM = {
   id_kanal: "",
@@ -51,6 +52,9 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   const [editorList, setEditorList] = useState<Person[]>([]);
   const [writerList, setWriterList] = useState<Person[]>([]);
   const [designerList, setDesignerList] = useState<Person[]>([]);
+  const [statList, setStatList] = useState<Statistik[]>([]);
+  const [kanalFilter, setKanalFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -68,7 +72,8 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       fetch("/api/users/video-editors").then((res) => res.json()),
       fetch("/api/users/script-writers").then((res) => res.json()),
       fetch("/api/users/graphic-designers").then((res) => res.json()),
-    ]).then(([kontenResult, kanalResult, editorResult, writerResult, designerResult]) => {
+      fetch("/api/socmed/statistik").then((res) => res.json()),
+    ]).then(([kontenResult, kanalResult, editorResult, writerResult, designerResult, statResult]) => {
       if (kontenResult.status === "fulfilled") setList(kontenResult.value);
       else console.error("Gagal ambil konten:", kontenResult.reason);
 
@@ -84,6 +89,9 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
       if (designerResult.status === "fulfilled") setDesignerList(designerResult.value);
       else console.error("Gagal ambil daftar designer:", designerResult.reason);
 
+      if (statResult.status === "fulfilled") setStatList(statResult.value);
+      else console.error("Gagal ambil statistik:", statResult.reason);
+
       setLoading(false);
     });
   }
@@ -93,6 +101,23 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
   function namaKanal(id: string) {
     return kanalList.find((k) => k.id_kanal === id)?.nama_kanal ?? "(kanal tidak dikenal)";
   }
+
+  // Statistik paling baru per konten -- biar performa kelihatan langsung
+  // di sini, nggak perlu loncat ke tab Statistik Performa lagi.
+  function statistikTerakhir(idKonten: string) {
+    const rows = statList.filter((s) => s.id_konten === idKonten);
+    if (rows.length === 0) return null;
+    return rows[rows.length - 1];
+  }
+
+  const filteredList = useMemo(() => {
+    return list.filter((k) => {
+      if (kanalFilter !== "all" && k.id_kanal !== kanalFilter) return false;
+      if (search.trim() && !k.judul_konten.toLowerCase().includes(search.trim().toLowerCase()))
+        return false;
+      return true;
+    });
+  }, [list, kanalFilter, search]);
 
   function openNew() {
     setEditingId(null);
@@ -177,7 +202,19 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
     load();
   }
 
-  if (loading) return <p className="text-sm text-muted">Memuat...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white border border-denim-100 rounded-signature p-4">
+            <div className="h-4 w-1/2 bg-denim-100 rounded mb-2" />
+            <div className="h-3 w-1/3 bg-denim-50 rounded mb-3" />
+            <div className="h-3 w-full bg-denim-50 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -196,11 +233,53 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
         </p>
       )}
 
-      {list.length === 0 ? (
-        <p className="text-sm text-muted">Belum ada konten yang digarap.</p>
+      {list.length > 0 && (
+        <div className="mb-4 space-y-2.5">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setKanalFilter("all")}
+              className={`shrink-0 text-xs font-mono px-2.5 py-1.5 rounded-full border transition-colors ${
+                kanalFilter === "all"
+                  ? "bg-denim-700 text-white border-denim-700"
+                  : "bg-white text-muted border-denim-100 hover:border-denim-300"
+              }`}
+            >
+              Semua Kanal
+            </button>
+            {kanalList.map((k) => (
+              <button
+                key={k.id_kanal}
+                onClick={() => setKanalFilter(k.id_kanal)}
+                className={`shrink-0 text-xs font-mono px-2.5 py-1.5 rounded-full border transition-colors ${
+                  kanalFilter === k.id_kanal
+                    ? "bg-denim-700 text-white border-denim-700"
+                    : "bg-white text-muted border-denim-100 hover:border-denim-300"
+                }`}
+              >
+                {k.nama_kanal}
+              </button>
+            ))}
+          </div>
+          <input
+            placeholder="Cari judul konten..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full sm:w-64 rounded-lg border border-denim-100 px-3 py-1.5 text-sm outline-none focus:border-denim-500"
+          />
+        </div>
+      )}
+
+      {filteredList.length === 0 ? (
+        <div className="text-center py-10 border border-dashed border-denim-100 rounded-signature">
+          <p className="text-sm text-muted">
+            {list.length === 0 ? "Belum ada konten yang digarap." : "Tidak ada konten yang cocok."}
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {list.map((k) => (
+          {filteredList.map((k) => {
+            const stat = statistikTerakhir(k.id_konten);
+            return (
             <Card key={k.id_konten}>
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <div>
@@ -221,6 +300,15 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                 {k.assigned_editor || "belum di-assign"}
                 {k.tanggal_publish && ` · Publish: ${k.tanggal_publish}`}
               </p>
+              {stat && (
+                <div className="flex items-center gap-3 text-xs bg-denim-50 rounded-lg px-2.5 py-1.5 mb-2 w-fit">
+                  <span className="text-denim-500">{stat.minggu_ke}</span>
+                  <span className="text-denim-900 font-mono">{stat.views || 0} views</span>
+                  <span className="text-denim-700 font-mono font-medium">
+                    {stat.engagement_rate || "-"} engagement
+                  </span>
+                </div>
+              )}
               {canEdit && (
                 <div className="flex gap-3 mt-2 pt-2 border-t border-denim-100">
                   <button onClick={() => openEdit(k)} className="text-xs text-denim-700 underline">
@@ -235,7 +323,8 @@ export default function SocMedKontenBoard({ canEdit }: { canEdit: boolean }) {
                 </div>
               )}
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 
 type Kanal = { id_kanal: string; nama_kanal: string; platform: string; link: string; dibuat_pada: string };
+type Konten = { id_kanal: string };
 const EMPTY_FORM = { nama_kanal: "", platform: "", link: "" };
 
 export default function SocMedKanalBoard({ canEdit }: { canEdit: boolean }) {
   const [list, setList] = useState<Kanal[]>([]);
+  const [kontenCount, setKontenCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -17,10 +19,20 @@ export default function SocMedKanalBoard({ canEdit }: { canEdit: boolean }) {
 
   function load() {
     setLoading(true);
-    fetch("/api/socmed/kanal")
-      .then((res) => res.json())
-      .then(setList)
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      fetch("/api/socmed/kanal").then((res) => res.json()),
+      fetch("/api/socmed/konten").then((res) => res.json()),
+    ]).then(([kanalResult, kontenResult]) => {
+      if (kanalResult.status === "fulfilled") setList(kanalResult.value);
+      if (kontenResult.status === "fulfilled") {
+        const counts: Record<string, number> = {};
+        (kontenResult.value as Konten[]).forEach((k) => {
+          counts[k.id_kanal] = (counts[k.id_kanal] ?? 0) + 1;
+        });
+        setKontenCount(counts);
+      }
+      setLoading(false);
+    });
   }
 
   useEffect(load, []);
@@ -70,7 +82,18 @@ export default function SocMedKanalBoard({ canEdit }: { canEdit: boolean }) {
     load();
   }
 
-  if (loading) return <p className="text-sm text-muted">Memuat...</p>;
+  if (loading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 animate-pulse">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="bg-white border border-denim-100 rounded-signature p-4">
+            <div className="h-4 w-1/2 bg-denim-100 rounded mb-2" />
+            <div className="h-3 w-1/3 bg-denim-50 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -84,7 +107,9 @@ export default function SocMedKanalBoard({ canEdit }: { canEdit: boolean }) {
       )}
 
       {list.length === 0 ? (
-        <p className="text-sm text-muted">Belum ada kanal yang digarap.</p>
+        <div className="text-center py-10 border border-dashed border-denim-100 rounded-signature">
+          <p className="text-sm text-muted">Belum ada kanal yang digarap.</p>
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {list.map((k) => (
@@ -95,6 +120,9 @@ export default function SocMedKanalBoard({ canEdit }: { canEdit: boolean }) {
                   {k.platform}
                 </span>
               </div>
+              <p className="text-xs text-muted mb-1">
+                {kontenCount[k.id_kanal] ?? 0} konten tercatat
+              </p>
               {k.link && (
                 <a
                   href={k.link}
