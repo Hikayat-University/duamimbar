@@ -244,7 +244,7 @@ export default function CalendarView({ canCreate }: { canCreate: boolean }) {
 
         {canCreate && (
           <Link
-            href="/my-project?tab=socmed_overview"
+            href="/my-project?tab=socmed_hub"
             className="mt-3 flex items-center justify-center gap-1.5 w-full text-sm font-medium bg-denim-700 text-white py-2.5 rounded-lg hover:bg-denim-500 transition-colors"
           >
             <Plus size={15} /> Tambah Konten
