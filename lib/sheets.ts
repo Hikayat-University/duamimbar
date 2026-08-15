@@ -24,6 +24,16 @@ export async function getSheetRows(sheetId: string, range = "A1:Z1000") {
   );
 }
 
+/**
+ * Baca sheet berdasarkan nama tab di dalam satu spreadsheet (dipakai untuk
+ * checklist per-proyek: satu spreadsheet, tiap proyek = satu tab).
+ * Nama tab di-quote otomatis supaya aman untuk tab yang mengandung spasi.
+ */
+export async function getSheetRowsByTab(spreadsheetId: string, tabName: string) {
+  const safeTab = tabName.replace(/'/g, "''");
+  return getSheetRows(spreadsheetId, `'${safeTab}'!A1:Z1000`);
+}
+
 /** Tambah satu baris baru ke akhir sheet. */
 export async function appendSheetRow(sheetId: string, values: (string | number)[]) {
   const sheets = google.sheets({ version: "v4", auth: getAuth() });
