@@ -44,16 +44,15 @@ function isAssignedTo(picField: string, nama: string): boolean {
     .includes(target);
 }
 
-async function fetchSummary(namaProyek: string): Promise<ChecklistSummary | null> {
-  try {
-    const res = await fetch(`/api/proyek/checklist?tab=${encodeURIComponent(namaProyek)}`);
-    if (!res.ok) return null;
-    const json: ChecklistResponse = await res.json();
-    return json.summary;
-  } catch {
-    return null;
-  }
-}
+type ProyekWithChecklist = Proyek & {
+  checklist: {
+    total: number;
+    selesai: number;
+    belum: number;
+    persenSelesai: number;
+    critical_belum: number;
+  } | null;
+};
 
 export default function DirectorsOverviewBoard({
   currentUserNama,
@@ -62,21 +61,16 @@ export default function DirectorsOverviewBoard({
   currentUserNama: string;
   currentUserRole: string;
 }) {
-  const [list, setList] = useState<Proyek[]>([]);
-  const [summaries, setSummaries] = useState<Record<string, ChecklistSummary | null>>({});
+  const [list, setList] = useState<ProyekWithChecklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Proyek | null>(null);
 
   useEffect(() => {
-    fetch("/api/proyek")
+    fetch("/api/proyek/overview")
       .then((res) => res.json())
-      .then(async (proyekList: Proyek[]) => {
-        setList(proyekList);
+      .then((data: ProyekWithChecklist[]) => {
+        setList(data);
         setLoading(false);
-        const results = await Promise.all(
-          proyekList.map(async (p) => [p.nama_proyek, await fetchSummary(p.nama_proyek)] as const)
-        );
-        setSummaries(Object.fromEntries(results));
       });
   }, []);
 
@@ -102,7 +96,7 @@ export default function DirectorsOverviewBoard({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {list.map((p) => {
-        const summary = summaries[p.nama_proyek];
+        const summary = p.checklist;
         return (
           <button
             key={p.id_proyek}
@@ -118,7 +112,13 @@ export default function DirectorsOverviewBoard({
               <p className="text-xs text-muted font-mono mt-2">{p.divisi_terlibat}</p>
             )}
 
-            {summary === undefined ? null : summary === null ? (
+            {summary && summary.critical_belum > 0 && (
+              <p className="text-xs text-red-600 font-medium mt-2">
+                ⚠ {summary.critical_belum} item critical belum selesai
+              </p>
+            )}
+
+            {summary === null ? (
               <p className="text-xs text-muted mt-3">Checklist belum tersedia</p>
             ) : (
               <div className="mt-3">
@@ -352,6 +352,7 @@ function ChecklistDetail({
                         <th className="px-4 py-3 font-medium hidden sm:table-cell">Phase</th>
                         <th className="px-4 py-3 font-medium hidden md:table-cell">Section</th>
                         <th className="px-4 py-3 font-medium">PIC</th>
+                        <th className="px-4 py-3 font-medium hidden lg:table-cell">Prioritas</th>
                         <th className="px-4 py-3 font-medium hidden lg:table-cell">Catatan</th>
                         <th className="px-4 py-3 font-medium">Status</th>
                       </tr>
@@ -366,6 +367,19 @@ function ChecklistDetail({
                             <td className="px-4 py-3 text-muted hidden sm:table-cell">{r.Phase}</td>
                             <td className="px-4 py-3 text-muted hidden md:table-cell">{r.Section}</td>
                             <td className="px-4 py-3 text-muted font-mono">{r.PIC}</td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              <span
+                                className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+                                  r.Prioritas === "Critical"
+                                    ? "bg-red-50 text-red-600"
+                                    : r.Prioritas === "High"
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "bg-denim-50 text-muted"
+                                }`}
+                              >
+                                {r.Prioritas || "Normal"}
+                              </span>
+                            </td>
                             <td className="px-4 py-3 text-muted hidden lg:table-cell max-w-[220px]">
                               {editingCatatan === r.rowIndex ? (
                                 <div className="flex items-start gap-1.5">
