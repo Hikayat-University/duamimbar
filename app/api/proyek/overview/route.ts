@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSheetRows, getSheetRowsByTab } from "@/lib/sheets";
-import { computeChecklistSummary, type ChecklistSummary } from "@/lib/checklistProgress";
+import { computeChecklistSummary, type ChecklistSummary, type ChecklistLikeRow } from "@/lib/checklistProgress";
 
 // Wajib: data proyek/checklist berubah terus, jangan di-cache Next.js.
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function GET() {
       if (SHEET_ID_CHECKLIST) {
         try {
           const rows = await getSheetRowsByTab(SHEET_ID_CHECKLIST, p.nama_proyek);
-          checklist = computeChecklistSummary(rows);
+          checklist = computeChecklistSummary(rows as ChecklistLikeRow[]);
         } catch {
           // Tab checklist buat proyek ini belum ada / nama nggak cocok --
           // checklist tetap null, bukan bikin seluruh request gagal.
