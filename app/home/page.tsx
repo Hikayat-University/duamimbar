@@ -19,6 +19,12 @@ export default async function HomePage() {
         {/* Gallery proyek full-width area yang tersisa — sengaja di luar
             max-w-3xl biar horizontal scroll-nya punya ruang. */}
         <div className="mt-10 pl-5 sm:pl-8">
+          <div className="flex items-center justify-between pr-5 sm:pr-8 mb-2">
+            <h2 className="font-display text-lg text-denim-700">Proyek Kami</h2>
+            <a href="/projects" className="text-sm text-denim-500 underline whitespace-nowrap">
+              Kelola checklist proyek →
+            </a>
+          </div>
           <ProyekPerusahaanBoard canEdit={bisaEdit} />
         </div>
 
