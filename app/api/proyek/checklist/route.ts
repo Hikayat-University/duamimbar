@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSheetRowsByTab, updateSheetRowByIndex } from "@/lib/sheets";
 import { getUserProfile } from "@/lib/supabase/server";
+import { computeChecklistSummary } from "@/lib/checklistProgress";
 
 // Wajib: data checklist berubah terus, jangan di-cache Next.js.
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ export type ChecklistRow = {
   Status: string;
   PIC: string;
   Catatan: string;
+  /** Opsional -- baru terisi kalau kolom "Deadline" udah ditambah di sheet. */
+  Deadline?: string;
 };
 
 /**
@@ -61,30 +64,34 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const total = rows.length;
-  const selesai = rows.filter((r) => r.Status === "Selesai").length;
-  const belum = total - selesai;
-  const persenSelesai = total === 0 ? 0 : Math.round((selesai / total) * 100);
+  const summary = computeChecklistSummary(rows);
 
   // rowIndex disertakan supaya klien bisa PATCH baris yang tepat -- checklist
   // nggak punya kolom ID unik, jadi update dilakukan berdasarkan posisi baris.
   const rowsWithIndex = rows.map((r, i) => ({ ...r, rowIndex: i }));
 
-  return NextResponse.json({
-    rows: rowsWithIndex,
-    summary: { total, selesai, belum, persenSelesai },
-  });
+  return NextResponse.json({ rows: rowsWithIndex, summary });
 }
+
+const ALLOWED_UPDATE_KEYS = ["Status", "Catatan"] as const;
 
 export async function PATCH(req: NextRequest) {
   const profile = await getUserProfile();
   if (!profile) return NextResponse.json({ error: "Belum login." }, { status: 401 });
 
-  const { tab, rowIndex, status } = await req.json();
-  if (!tab || rowIndex === undefined || rowIndex === null) {
-    return NextResponse.json({ error: "tab dan rowIndex wajib diisi." }, { status: 400 });
+  const { tab, rowIndex, updates } = await req.json();
+  if (!tab || rowIndex === undefined || rowIndex === null || !updates) {
+    return NextResponse.json({ error: "tab, rowIndex, dan updates wajib diisi." }, { status: 400 });
   }
-  if (!STATUS_OPTIONS.includes(status)) {
+
+  const cleanUpdates: Record<string, string> = {};
+  for (const key of ALLOWED_UPDATE_KEYS) {
+    if (updates[key] !== undefined) cleanUpdates[key] = String(updates[key]);
+  }
+  if (Object.keys(cleanUpdates).length === 0) {
+    return NextResponse.json({ error: "Tidak ada field yang boleh diubah." }, { status: 400 });
+  }
+  if (cleanUpdates.Status !== undefined && !STATUS_OPTIONS.includes(cleanUpdates.Status)) {
     return NextResponse.json({ error: "Status tidak valid." }, { status: 400 });
   }
 
@@ -96,7 +103,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Cek ulang di server: cuma PIC yang di-assign di baris itu (atau Head
-  // Director sebagai override) yang boleh ubah statusnya.
+  // Director sebagai override) yang boleh ubah isinya.
   const rows = await getSheetRowsByTab(SHEET_ID_CHECKLIST, tab);
   const row = rows[rowIndex];
   if (!row) {
@@ -110,6 +117,6 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  await updateSheetRowByIndex(SHEET_ID_CHECKLIST, tab, rowIndex, { Status: status });
+  await updateSheetRowByIndex(SHEET_ID_CHECKLIST, tab, rowIndex, cleanUpdates);
   return NextResponse.json({ success: true });
 }
