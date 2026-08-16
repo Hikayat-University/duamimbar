@@ -4,11 +4,6 @@ export const DASHBOARD_CONFIG: Record<
   DashboardKey,
   { title: string; sheetEnvVar: string; emptyLabel: string }
 > = {
-  directors_overview: {
-    title: "Proyek Perusahaan",
-    sheetEnvVar: "SHEET_ID_PROYEK_PERUSAHAAN",
-    emptyLabel: "Belum ada proyek perusahaan tercatat.",
-  },
   socmed_hub: {
     title: "Social Media",
     sheetEnvVar: "SHEET_ID_SOCMED_KANAL",

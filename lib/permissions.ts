@@ -8,7 +8,6 @@ export type Role =
   | "kadiv_business";
 
 export type DashboardKey =
-  | "directors_overview"
   | "socmed_hub"
   | "proyek_script_writer"
   | "proyek_graphic_designer"
@@ -22,7 +21,7 @@ export type DashboardKey =
 
 /** Dashboard bawaan tiap role di halaman My Page (lihat PRD Bagian 3). */
 const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
-  head_director: ["directors_overview"],
+  head_director: [], // Projects sekarang halaman top-level /projects, bukan tab di sini
   kadiv_socmed: ["socmed_hub"],
   script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
@@ -43,7 +42,7 @@ export function getAccessibleDashboards(
 
   if (role === "head_director") {
     const semuaDashboard: DashboardKey[] = [
-      "socmed_hub",
+      "socmed_hub",  // (Proyek Perusahaan sekarang halaman top-level /projects, bukan tab di sini)
       "proyek_script_writer",
       "proyek_graphic_designer",
       "video_editor",
@@ -60,13 +59,7 @@ export function getAccessibleDashboards(
     ];
   }
 
-  const tambahan: { key: DashboardKey; canEdit: boolean }[] = [
-    // Proyek Perusahaan (checklist per-item) kebuka buat semua role -- siapa
-    // pun bisa lihat semua proyek, tapi cuma item checklist yang PIC-nya
-    // cocok sama namanya sendiri yang bisa diubah (dicek ulang di server,
-    // bukan cuma di sini).
-    { key: "directors_overview", canEdit: true },
-  ];
+  const tambahan: { key: DashboardKey; canEdit: boolean }[] = [];
   if (aksesTambahan.includes("video_editor_dashboard")) {
     tambahan.push({ key: "video_editor", canEdit: true });
   }

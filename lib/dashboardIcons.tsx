@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 
 export const DASHBOARD_ICONS: Record<DashboardKey, LucideIcon> = {
-  directors_overview: LayoutDashboard,
   socmed_hub: Radio,
   proyek_script_writer: PenLine,
   proyek_graphic_designer: Palette,
