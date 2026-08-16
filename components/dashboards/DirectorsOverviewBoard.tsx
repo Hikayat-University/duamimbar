@@ -78,8 +78,35 @@ function statusPhase(p: PhaseStat): "Completed" | "In Progress" | "Not Started" 
 
 function parseDeadline(d?: string): Date | null {
   if (!d) return null;
-  const parsed = new Date(d);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  const trimmed = d.trim();
+
+  // Format ISO (mis. "2026-08-18") -- Date bawaan JS udah bisa baca ini.
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const iso = new Date(trimmed);
+    return isNaN(iso.getTime()) ? null : iso;
+  }
+
+  // Format Google Sheets: "DD/MM/YYYY" atau "DD/MM/YYYY HH:mm[:ss]".
+  // Sengaja nggak pakai `new Date(string)` langsung -- itu nebak format
+  // Amerika (MM/DD/YYYY), jadi "18/08/2026" dibaca bulan=18 (invalid) dan
+  // diam-diam gagal tanpa error.
+  const match = trimmed.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (match) {
+    const [, dd, mm, yyyy, hh = "0", min = "0", ss = "0"] = match;
+    const date = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      Number(hh),
+      Number(min),
+      Number(ss)
+    );
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
 }
 
 export default function DirectorsOverviewBoard({
