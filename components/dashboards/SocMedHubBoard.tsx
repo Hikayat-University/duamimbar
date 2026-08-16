@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/Card";
+import { VerdictCard } from "@/components/ui/VerdictCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { CardGridSkeleton } from "@/components/ui/Skeleton";
+import { FilterPills } from "@/components/ui/FilterPills";
+import { Input, Select, Textarea } from "@/components/ui/FormField";
+import { Button } from "@/components/ui/Button";
 
 type Kanal = { id_kanal: string; nama_kanal: string; platform: string; link: string };
 type Konten = {
@@ -121,7 +127,7 @@ export default function SocMedHubBoard({ canEdit }: { canEdit: boolean }) {
 
   useEffect(load, []);
 
-  if (loading) return <HubSkeleton />;
+  if (loading) return <CardGridSkeleton />;
 
   const selectedKanal = kanalList.find((k) => k.id_kanal === selectedKanalId) ?? null;
 
@@ -203,7 +209,6 @@ function KanalGrid({
 
   return (
     <div>
-      {/* Verdict row -- angka utama dulu, baru detail */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <VerdictCard label="Kanal Aktif" value={kanalList.length} />
         <VerdictCard label="Total Konten" value={totalKonten} />
@@ -211,18 +216,13 @@ function KanalGrid({
       </div>
 
       {canEdit && (
-        <button
-          onClick={() => setFormOpen(true)}
-          className="mb-4 flex items-center gap-1.5 text-sm bg-denim-700 text-white px-3.5 py-2 rounded-lg hover:bg-denim-500 transition-colors"
-        >
+        <Button onClick={() => setFormOpen(true)} className="mb-4 flex items-center gap-1.5">
           <Plus size={14} /> Tambah Kanal
-        </button>
+        </Button>
       )}
 
       {kanalList.length === 0 ? (
-        <div className="text-center py-10 border border-dashed border-denim-100 rounded-signature">
-          <p className="text-sm text-muted">Belum ada kanal yang digarap.</p>
-        </div>
+        <EmptyState message="Belum ada kanal yang digarap." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {kanalList.map((k) => {
@@ -266,15 +266,6 @@ function KanalGrid({
   );
 }
 
-function VerdictCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-white border border-denim-100 rounded-signature p-3.5">
-      <p className="text-xl font-display text-denim-900">{value}</p>
-      <p className="text-xs text-muted">{label}</p>
-    </div>
-  );
-}
-
 function KanalFormModal({
   form,
   setForm,
@@ -296,34 +287,31 @@ function KanalFormModal({
     <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20">
       <form onSubmit={onSubmit} className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3">
         <h2 className="font-display text-lg text-denim-700">{title}</h2>
-        <input
+        <Input
           required
           placeholder="Nama kanal (mis. Instagram Duamimbar)"
           value={form.nama_kanal}
           onChange={(e) => setForm({ ...form, nama_kanal: e.target.value })}
-          className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
         />
-        <input
+        <Input
           required
           placeholder="Platform (mis. Instagram, TikTok, YouTube)"
           value={form.platform}
           onChange={(e) => setForm({ ...form, platform: e.target.value })}
-          className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
         />
-        <input
+        <Input
           placeholder="Link (opsional)"
           value={form.link}
           onChange={(e) => setForm({ ...form, link: e.target.value })}
-          className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onCancel} className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900">
+          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 text-center">
             Batal
-          </button>
-          <button type="submit" disabled={saving} className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white disabled:opacity-50">
+          </Button>
+          <Button type="submit" disabled={saving} className="flex-1 text-center">
             {saving ? "Menyimpan..." : "Simpan"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -362,7 +350,7 @@ function KanalWorkspace({
   const [kanalFormOpen, setKanalFormOpen] = useState(false);
   const [kanalForm, setKanalForm] = useState(KANAL_FORM_EMPTY);
   const [kontenFormOpen, setKontenFormOpen] = useState<Konten | "new" | null>(null);
-  const [statFormFor, setStatFormFor] = useState<string | null>(null); // id_konten
+  const [statFormFor, setStatFormFor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -419,7 +407,6 @@ function KanalWorkspace({
 
   return (
     <div className="flex gap-4">
-      {/* Side menu: lompat ke workspace kanal lain */}
       <div className="hidden md:block w-48 shrink-0">
         <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted hover:text-denim-900 mb-3">
           <ArrowLeft size={14} /> Semua kanal
@@ -476,26 +463,18 @@ function KanalWorkspace({
           )}
         </div>
 
-        {/* Verdict mini khusus kanal ini */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <VerdictCard label="Total Konten" value={kontenList.length} />
           <VerdictCard label="Siap Post" value={kontenList.filter((k) => k.status === "Siap Post").length} />
           <VerdictCard label="Rata-rata Engagement" value={avgEngagement(stats)} />
         </div>
 
-        {/* Filter + search + tambah konten */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          {(["all", ...STATUS_OPTIONS] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`text-xs font-mono px-2.5 py-1 rounded-full border transition-colors ${
-                statusFilter === s ? "bg-denim-700 text-white border-denim-700" : "bg-white text-muted border-denim-100 hover:border-denim-300"
-              }`}
-            >
-              {s === "all" ? "Semua Status" : s}
-            </button>
-          ))}
+          <FilterPills
+            options={[{ value: "all", label: "Semua Status" }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s }))]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
           <input
             placeholder="Cari judul..."
             value={search}
@@ -505,20 +484,15 @@ function KanalWorkspace({
         </div>
 
         {canEdit && (
-          <button
-            onClick={() => setKontenFormOpen("new")}
-            className="mb-3 flex items-center gap-1.5 text-sm bg-denim-700 text-white px-3.5 py-2 rounded-lg hover:bg-denim-500 transition-colors"
-          >
+          <Button onClick={() => setKontenFormOpen("new")} className="mb-3 flex items-center gap-1.5">
             <Plus size={14} /> Tambah Konten
-          </button>
+          </Button>
         )}
 
         {filteredKonten.length === 0 ? (
-          <div className="text-center py-10 border border-dashed border-denim-100 rounded-signature">
-            <p className="text-sm text-muted">
-              {kontenList.length === 0 ? "Belum ada konten di kanal ini." : "Tidak ada konten yang cocok dengan filter."}
-            </p>
-          </div>
+          <EmptyState
+            message={kontenList.length === 0 ? "Belum ada konten di kanal ini." : "Tidak ada konten yang cocok dengan filter."}
+          />
         ) : (
           <div className="space-y-3">
             {filteredKonten.map((k) => (
@@ -633,10 +607,7 @@ function KontenCard({
           </>
         )}
         {stats.length > 0 && (
-          <button
-            onClick={() => setExpanded((e) => !e)}
-            className="text-xs text-muted flex items-center gap-1 ml-auto"
-          >
+          <button onClick={() => setExpanded((e) => !e)} className="text-xs text-muted flex items-center gap-1 ml-auto">
             Riwayat statistik ({stats.length})
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
@@ -768,30 +739,24 @@ function KontenFormModal({
 
         {step === 1 && (
           <div className="space-y-3">
-            <input
+            <Input
               placeholder="Judul konten"
               value={form.judul_konten}
               onChange={(e) => setForm({ ...form, judul_konten: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
-            >
+            <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
-            </select>
+            </Select>
             <div>
               <label className="text-xs text-muted mb-1 block">
                 Target tanggal publish (dipakai juga sebagai deadline buat Script Writer & Video Editor)
               </label>
-              <input
+              <Input
                 type="date"
                 value={form.tanggal_publish}
                 onChange={(e) => setForm({ ...form, tanggal_publish: e.target.value })}
-                className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               />
             </div>
             {step1Error && <p className="text-sm text-red-600">{step1Error}</p>}
@@ -801,33 +766,26 @@ function KontenFormModal({
         {step === 2 && (
           <div className="space-y-3">
             <p className="text-xs text-muted">Kosongin dropdown di bawah kalau konten ini nggak butuh Script Writer.</p>
-            <select
-              value={form.assigned_script_writer}
-              onChange={(e) => setForm({ ...form, assigned_script_writer: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
-            >
+            <Select value={form.assigned_script_writer} onChange={(e) => setForm({ ...form, assigned_script_writer: e.target.value })}>
               <option value="">— Nggak butuh Script Writer —</option>
               {writerList.map((w) => (
                 <option key={w.id} value={w.nama}>{w.nama}</option>
               ))}
-            </select>
-            <input
+            </Select>
+            <Input
               placeholder="CTA (Call to Action)"
               value={form.cta}
               onChange={(e) => setForm({ ...form, cta: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
-            <input
+            <Input
               placeholder="Referensi desain (link, opsional)"
               value={form.referensi_desain}
               onChange={(e) => setForm({ ...form, referensi_desain: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
-            <textarea
+            <Textarea
               placeholder="Gaya copywriting yang diinginkan (brief buat Writer)"
               value={form.gaya_copywriting}
               onChange={(e) => setForm({ ...form, gaya_copywriting: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               rows={3}
             />
           </div>
@@ -836,21 +794,16 @@ function KontenFormModal({
         {step === 3 && (
           <div className="space-y-3">
             <p className="text-xs text-muted">Kosongin dropdown di bawah kalau konten ini nggak butuh Video Editor.</p>
-            <select
-              value={form.assigned_editor}
-              onChange={(e) => setForm({ ...form, assigned_editor: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
-            >
+            <Select value={form.assigned_editor} onChange={(e) => setForm({ ...form, assigned_editor: e.target.value })}>
               <option value="">— Nggak butuh Video Editor —</option>
               {editorList.map((ed) => (
                 <option key={ed.id} value={ed.nama}>{ed.nama}</option>
               ))}
-            </select>
-            <textarea
+            </Select>
+            <Textarea
               placeholder="Brief untuk Video Editor (mis. timestamp footage yang dipakai)"
               value={form.brief_editor}
               onChange={(e) => setForm({ ...form, brief_editor: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               rows={3}
             />
           </div>
@@ -859,21 +812,16 @@ function KontenFormModal({
         {step === 4 && (
           <div className="space-y-3">
             <p className="text-xs text-muted">Kosongin dropdown di bawah kalau konten ini nggak butuh Graphic Designer.</p>
-            <select
-              value={form.assigned_graphic_designer}
-              onChange={(e) => setForm({ ...form, assigned_graphic_designer: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
-            >
+            <Select value={form.assigned_graphic_designer} onChange={(e) => setForm({ ...form, assigned_graphic_designer: e.target.value })}>
               <option value="">— Nggak butuh Graphic Designer —</option>
               {designerList.map((d) => (
                 <option key={d.id} value={d.nama}>{d.nama}</option>
               ))}
-            </select>
-            <textarea
+            </Select>
+            <Textarea
               placeholder="Brief desain (bisa panjang — detail visual yang diinginkan)"
               value={form.brief_desain}
               onChange={(e) => setForm({ ...form, brief_desain: e.target.value })}
-              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
               rows={4}
             />
           </div>
@@ -883,22 +831,14 @@ function KontenFormModal({
 
         <div className="flex gap-2 pt-1">
           {step === 1 ? (
-            <button type="button" onClick={onCancel} className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900">
-              Batal
-            </button>
+            <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 text-center">Batal</Button>
           ) : (
-            <button type="button" onClick={() => setStep((s) => Math.max(s - 1, 1))} className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900">
-              Kembali
-            </button>
+            <Button type="button" variant="secondary" onClick={() => setStep((s) => Math.max(s - 1, 1))} className="flex-1 text-center">Kembali</Button>
           )}
           {step < 4 ? (
-            <button type="button" onClick={goNext} className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white">
-              Lanjut
-            </button>
+            <Button type="button" onClick={goNext} className="flex-1 text-center">Lanjut</Button>
           ) : (
-            <button type="submit" disabled={saving} className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white disabled:opacity-50">
-              {saving ? "Menyimpan..." : "Simpan"}
-            </button>
+            <Button type="submit" disabled={saving} className="flex-1 text-center">{saving ? "Menyimpan..." : "Simpan"}</Button>
           )}
         </div>
       </form>
@@ -949,30 +889,19 @@ function StatFormModal({
         <h2 className="font-display text-lg text-denim-700">Statistik Baru</h2>
         <p className="text-xs text-muted -mt-2">{judul}</p>
 
-        <input
-          required
-          placeholder="Minggu ke (mis. W29)"
-          value={form.minggu_ke}
-          onChange={(e) => setForm({ ...form, minggu_ke: e.target.value })}
-          className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
-        />
-        <input
-          placeholder="Link konten yang sudah post (opsional)"
-          value={form.link_konten}
-          onChange={(e) => setForm({ ...form, link_konten: e.target.value })}
-          className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
-        />
+        <Input required placeholder="Minggu ke (mis. W29)" value={form.minggu_ke} onChange={(e) => setForm({ ...form, minggu_ke: e.target.value })} />
+        <Input placeholder="Link konten yang sudah post (opsional)" value={form.link_konten} onChange={(e) => setForm({ ...form, link_konten: e.target.value })} />
 
         <div className="grid grid-cols-2 gap-2">
-          <input required type="number" placeholder="Views" value={form.views} onChange={(e) => setForm({ ...form, views: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input required type="number" placeholder="Likes" value={form.likes} onChange={(e) => setForm({ ...form, likes: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input required type="number" placeholder="Reach" value={form.reach} onChange={(e) => setForm({ ...form, reach: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Komentar" value={form.comments} onChange={(e) => setForm({ ...form, comments: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Repost" value={form.reposts} onChange={(e) => setForm({ ...form, reposts: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Share" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Save" value={form.saves} onChange={(e) => setForm({ ...form, saves: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Follow" value={form.follows} onChange={(e) => setForm({ ...form, follows: e.target.value })} className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
-          <input type="number" placeholder="Klik link eksternal" value={form.external_link_taps} onChange={(e) => setForm({ ...form, external_link_taps: e.target.value })} className="col-span-2 w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500" />
+          <Input required type="number" placeholder="Views" value={form.views} onChange={(e) => setForm({ ...form, views: e.target.value })} />
+          <Input required type="number" placeholder="Likes" value={form.likes} onChange={(e) => setForm({ ...form, likes: e.target.value })} />
+          <Input required type="number" placeholder="Reach" value={form.reach} onChange={(e) => setForm({ ...form, reach: e.target.value })} />
+          <Input type="number" placeholder="Komentar" value={form.comments} onChange={(e) => setForm({ ...form, comments: e.target.value })} />
+          <Input type="number" placeholder="Repost" value={form.reposts} onChange={(e) => setForm({ ...form, reposts: e.target.value })} />
+          <Input type="number" placeholder="Share" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} />
+          <Input type="number" placeholder="Save" value={form.saves} onChange={(e) => setForm({ ...form, saves: e.target.value })} />
+          <Input type="number" placeholder="Follow" value={form.follows} onChange={(e) => setForm({ ...form, follows: e.target.value })} />
+          <Input type="number" placeholder="Klik link eksternal" value={form.external_link_taps} onChange={(e) => setForm({ ...form, external_link_taps: e.target.value })} className="col-span-2" />
         </div>
 
         <div className="rounded-lg bg-denim-50 px-3 py-2.5 flex items-center justify-between">
@@ -983,37 +912,10 @@ function StatFormModal({
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onCancel} className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900">
-            Batal
-          </button>
-          <button type="submit" disabled={saving} className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white disabled:opacity-50">
-            {saving ? "Menyimpan..." : "Simpan"}
-          </button>
+          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 text-center">Batal</Button>
+          <Button type="submit" disabled={saving} className="flex-1 text-center">{saving ? "Menyimpan..." : "Simpan"}</Button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function HubSkeleton() {
-  return (
-    <div className="animate-pulse">
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="bg-white border border-denim-100 rounded-signature p-3.5">
-            <div className="h-5 w-10 bg-denim-100 rounded mb-1.5" />
-            <div className="h-3 w-16 bg-denim-50 rounded" />
-          </div>
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="bg-white border border-denim-100 rounded-signature p-4">
-            <div className="h-4 w-2/3 bg-denim-100 rounded mb-2" />
-            <div className="h-3 w-1/3 bg-denim-50 rounded" />
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
