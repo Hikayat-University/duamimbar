@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSheetRows, getSheetRowsByTab } from "@/lib/sheets";
+import { computeChecklistSummary, type ChecklistSummary } from "@/lib/checklistProgress";
 
 // Wajib: data proyek/checklist berubah terus, jangan di-cache Next.js.
 export const dynamic = "force-dynamic";
@@ -16,13 +17,7 @@ export type ProyekOverview = {
   tanggal_mulai: string;
   tanggal_selesai: string;
   dibuat_oleh: string;
-  checklist: {
-    total: number;
-    selesai: number;
-    belum: number;
-    persenSelesai: number;
-    critical_belum: number;
-  } | null;
+  checklist: ChecklistSummary | null;
 };
 
 /**
@@ -42,18 +37,7 @@ export async function GET() {
       if (SHEET_ID_CHECKLIST) {
         try {
           const rows = await getSheetRowsByTab(SHEET_ID_CHECKLIST, p.nama_proyek);
-          const total = rows.length;
-          const selesai = rows.filter((r) => r.Status === "Selesai").length;
-          const criticalBelum = rows.filter(
-            (r) => r.Status !== "Selesai" && r.Prioritas === "Critical"
-          ).length;
-          checklist = {
-            total,
-            selesai,
-            belum: total - selesai,
-            persenSelesai: total === 0 ? 0 : Math.round((selesai / total) * 100),
-            critical_belum: criticalBelum,
-          };
+          checklist = computeChecklistSummary(rows);
         } catch {
           // Tab checklist buat proyek ini belum ada / nama nggak cocok --
           // checklist tetap null, bukan bikin seluruh request gagal.
