@@ -14,7 +14,6 @@ import SocMedHubBoard from "@/components/dashboards/SocMedHubBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
 import AdminPostingBoard from "@/components/dashboards/AdminPostingBoard";
-import DirectorsOverviewBoard from "@/components/dashboards/DirectorsOverviewBoard";
 
 export default async function MyPage({
   searchParams,
@@ -72,9 +71,7 @@ export default async function MyPage({
         {config && (
           <section>
             <h2 className="font-display text-lg text-denim-700 mb-3">{config.title}</h2>
-            {active?.key === "directors_overview" ? (
-              <DirectorsOverviewBoard currentUserNama={profile.nama} currentUserRole={profile.role} />
-            ) : active?.key === "video_editor" ? (
+            {active?.key === "video_editor" ? (
               <VideoEditorBoard
                 currentUserNama={profile.nama}
                 canEditAll={
