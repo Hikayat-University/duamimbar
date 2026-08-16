@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const summary = computeChecklistSummary(rows);
+  const summary = computeChecklistSummary(rows as ChecklistRow[]);
 
   // rowIndex disertakan supaya klien bisa PATCH baris yang tepat -- checklist
   // nggak punya kolom ID unik, jadi update dilakukan berdasarkan posisi baris.
