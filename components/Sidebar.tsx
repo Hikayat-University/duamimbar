@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   House,
   LayoutGrid,
+  FolderKanban,
   CalendarDays,
   User,
   Users,
@@ -17,6 +18,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: House },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/my-project", label: "My Project", icon: LayoutGrid },
   { href: "/calendar", label: "Kalender", icon: CalendarDays },
   { href: "/profile", label: "Profile", icon: User },
