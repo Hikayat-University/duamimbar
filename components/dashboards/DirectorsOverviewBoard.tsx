@@ -613,6 +613,12 @@ function TasksTab({
   startEditCatatan,
   saveCatatan,
   setEditingCatatan,
+  editingBukti,
+  buktiDraft,
+  setBuktiDraft,
+  startEditBukti,
+  saveBukti,
+  setEditingBukti,
 }: {
   phases: string[];
   statusFilter: "all" | "Selesai" | "Belum";
