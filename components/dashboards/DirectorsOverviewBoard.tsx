@@ -673,11 +673,11 @@ function TasksTab({
       {filteredRows.length === 0 ? (
         <p className="text-sm text-muted">Tidak ada item yang cocok dengan filter ini.</p>
       ) : (
-        <div className="border border-denim-100 rounded-signature overflow-hidden">
+        <div className="border border-denim-100 rounded-signature overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-white text-left text-xs text-denim-500 uppercase tracking-wide">
+                <tr className="bg-white border-b border-denim-100 text-left text-xs text-denim-500 uppercase tracking-wide">
                   <th className="px-4 py-3 font-medium">Item</th>
                   <th className="px-4 py-3 font-medium hidden sm:table-cell">Phase</th>
                   <th className="px-4 py-3 font-medium hidden md:table-cell">Section</th>
