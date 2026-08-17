@@ -7,6 +7,7 @@ import {
   CircleDashed,
   ListChecks,
   Pencil,
+  Link as LinkIcon,
   TrendingUp,
   AlertTriangle,
 } from "lucide-react";
@@ -40,6 +41,7 @@ type ChecklistRow = {
   PIC: string;
   Catatan: string;
   Deadline?: string;
+  Bukti?: string;
   rowIndex: number;
 };
 
@@ -223,6 +225,9 @@ function ChecklistDetail({
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [editingCatatan, setEditingCatatan] = useState<number | null>(null);
   const [catatanDraft, setCatatanDraft] = useState("");
+  const [editingBukti, setEditingBukti] = useState<number | null>(null);
+  const [buktiDraft, setBuktiDraft] = useState("");
+
 
   useEffect(() => {
     setLoading(true);
@@ -233,6 +238,7 @@ function ChecklistDetail({
     setPhaseFilter("all");
     setPage(1);
     setEditingCatatan(null);
+    setEditingBukti(null);
     fetch(`/api/proyek/checklist?tab=${encodeURIComponent(proyek.nama_proyek)}`)
       .then(async (res) => {
         const json = await res.json();
@@ -339,9 +345,25 @@ function ChecklistDetail({
     setSavingIndex(null);
   }
 
+  // Ini yang beneran bisa kita jamin akurat: kapan status diubah & sama
+  // siapa. Ditulis otomatis, di-APPEND ke Catatan (bukan nimpa), jadi
+  // kebentuk audit trail sendiri tanpa gantung ke link eksternal yang
+  // bisa aja nggak berubah walau isinya udah direvisi.
   function toggleStatus(row: ChecklistRow) {
     const nextStatus = row.Status === "Selesai" ? "Belum" : "Selesai";
-    patchRow(row, { Status: nextStatus }, (r) => ({ ...r, Status: nextStatus }));
+    const waktu = new Date().toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const logLine = `[${waktu} - ${currentUserNama}] Status diubah ke "${nextStatus}"`;
+    const newCatatan = row.Catatan ? `${row.Catatan}\n${logLine}` : logLine;
+    patchRow(row, { Status: nextStatus, Catatan: newCatatan }, (r) => ({
+      ...r,
+      Status: nextStatus,
+      Catatan: newCatatan,
+    }));
   }
 
   function startEditCatatan(row: ChecklistRow) {
@@ -352,6 +374,16 @@ function ChecklistDetail({
   async function saveCatatan(row: ChecklistRow) {
     await patchRow(row, { Catatan: catatanDraft }, (r) => ({ ...r, Catatan: catatanDraft }));
     setEditingCatatan(null);
+  }
+
+  function startEditBukti(row: ChecklistRow) {
+    setEditingBukti(row.rowIndex);
+    setBuktiDraft(row.Bukti ?? "");
+  }
+
+  async function saveBukti(row: ChecklistRow) {
+    await patchRow(row, { Bukti: buktiDraft }, (r) => ({ ...r, Bukti: buktiDraft }));
+    setEditingBukti(null);
   }
 
   return (
@@ -424,6 +456,12 @@ function ChecklistDetail({
                 startEditCatatan={startEditCatatan}
                 saveCatatan={saveCatatan}
                 setEditingCatatan={setEditingCatatan}
+                editingBukti={editingBukti}
+                buktiDraft={buktiDraft}
+                setBuktiDraft={setBuktiDraft}
+                startEditBukti={startEditBukti}
+                saveBukti={saveBukti}
+                setEditingBukti={setEditingBukti}
               />
             )}
 
@@ -595,6 +633,12 @@ function TasksTab({
   startEditCatatan: (r: ChecklistRow) => void;
   saveCatatan: (r: ChecklistRow) => void;
   setEditingCatatan: (v: number | null) => void;
+  editingBukti: number | null;
+  buktiDraft: string;
+  setBuktiDraft: (v: string) => void;
+  startEditBukti: (r: ChecklistRow) => void;
+  saveBukti: (r: ChecklistRow) => void;
+  setEditingBukti: (v: number | null) => void;
 }) {
   return (
     <div>
@@ -634,6 +678,7 @@ function TasksTab({
                   <th className="px-4 py-3 font-medium">PIC</th>
                   <th className="px-4 py-3 font-medium hidden lg:table-cell">Prioritas</th>
                   <th className="px-4 py-3 font-medium hidden lg:table-cell">Catatan</th>
+                  <th className="px-4 py-3 font-medium hidden lg:table-cell">Bukti</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
@@ -684,6 +729,38 @@ function TasksTab({
                               </button>
                             )}
                           </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell max-w-[180px]">
+                        {editingBukti === r.rowIndex ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              value={buktiDraft}
+                              onChange={(e) => setBuktiDraft(e.target.value)}
+                              placeholder="Link draf (Docs/Drive/Figma)"
+                              className="w-full text-xs rounded-lg border border-denim-200 px-2 py-1 outline-none focus:border-denim-500"
+                            />
+                            <button onClick={() => saveBukti(r)} disabled={saving} className="text-xs bg-denim-700 text-white px-2 py-0.5 rounded shrink-0 disabled:opacity-50">✓</button>
+                            <button onClick={() => setEditingBukti(null)} className="text-xs text-muted shrink-0">✕</button>
+                          </div>
+                        ) : r.Bukti ? (
+                          <div className="flex items-center gap-1.5">
+                            <a href={r.Bukti} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-denim-600 underline truncate">
+                              <LinkIcon size={11} className="shrink-0" /> Lihat draf
+                            </a>
+                            {assigned && (
+                              <button onClick={() => startEditBukti(r)} className="shrink-0 text-denim-300 hover:text-denim-700" title="Ganti link (link lama otomatis nggak ke-track lagi -- pastikan revisi ke-track lewat version history di Docs/Drive/Figma-nya sendiri)">
+                                <Pencil size={11} />
+                              </button>
+                            )}
+                          </div>
+                        ) : assigned ? (
+                          <button onClick={() => startEditBukti(r)} className="text-xs text-denim-400 hover:text-denim-700 underline">
+                            + Tambah link
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
