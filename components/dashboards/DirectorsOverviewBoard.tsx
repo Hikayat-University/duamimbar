@@ -677,7 +677,7 @@ function TasksTab({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-denim-50/60 text-left text-xs text-denim-500 uppercase tracking-wide">
+                <tr className="bg-white text-left text-xs text-denim-500 uppercase tracking-wide">
                   <th className="px-4 py-3 font-medium">Item</th>
                   <th className="px-4 py-3 font-medium hidden sm:table-cell">Phase</th>
                   <th className="px-4 py-3 font-medium hidden md:table-cell">Section</th>
