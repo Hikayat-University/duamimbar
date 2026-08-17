@@ -27,7 +27,7 @@ export default async function ProjectsPage() {
     <div className="flex min-h-screen">
       <Sidebar nama={profile.nama} role={profile.role} />
       <main className="flex-1 min-w-0 px-5 py-8 pb-24 sm:pb-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full">
           <h1 className="font-display text-2xl text-denim-700 mb-1">Projects</h1>
           <p className="text-muted text-sm mb-6">
             Portofolio proyek lintas divisi -- checklist, progress, dan siapa yang di-assign.
