@@ -19,6 +19,8 @@ export type ChecklistRow = {
   Catatan: string;
   /** Opsional -- baru terisi kalau kolom "Deadline" udah ditambah di sheet. */
   Deadline?: string;
+  /** Opsional -- link bukti kerja (Docs/Drive/Figma/dst), kolom "Bukti". */
+  Bukti?: string;
 };
 
 /**
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ rows: rowsWithIndex, summary });
 }
 
-const ALLOWED_UPDATE_KEYS = ["Status", "Catatan"] as const;
+const ALLOWED_UPDATE_KEYS = ["Status", "Catatan", "Bukti"] as const;
 
 export async function PATCH(req: NextRequest) {
   const profile = await getUserProfile();
