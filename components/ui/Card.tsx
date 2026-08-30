@@ -30,6 +30,8 @@ const STATUS_TONE: Record<string, string> = {
   Cost: "bg-red-50 text-red-700",
   Hutang: "bg-red-50 text-red-700",
   Belum: "bg-orange-50 text-orange-700",
+  Rejected: "bg-red-50 text-red-700",
+  Overdue: "bg-red-50 text-red-700",
 
   // Oranye — belum mulai
   Draf: "bg-orange-50 text-orange-700",
@@ -37,12 +39,16 @@ const STATUS_TONE: Record<string, string> = {
   Akan: "bg-orange-50 text-orange-700",
   Menulis: "bg-orange-50 text-orange-700",
   Perencanaan: "bg-orange-50 text-orange-700",
+  Unpaid: "bg-orange-50 text-orange-700",
+  Open: "bg-orange-50 text-orange-700",
 
   // Kuning — sedang dikerjakan
   Proses: "bg-amber-50 text-amber-700",
   Sedang: "bg-amber-50 text-amber-700",
   Edited: "bg-amber-50 text-amber-700",
   Berjalan: "bg-amber-50 text-amber-700",
+  Pending: "bg-amber-50 text-amber-700",
+  Partial: "bg-amber-50 text-amber-700",
 
   // Hijau — progres baik / menunggu keputusan / arus positif
   Review: "bg-emerald-50 text-emerald-700",
@@ -57,6 +63,8 @@ const STATUS_TONE: Record<string, string> = {
   Done: "bg-blue-50 text-blue-700",
   Sudah: "bg-blue-50 text-blue-700",
   Lunas: "bg-blue-50 text-blue-700",
+  Approved: "bg-blue-50 text-blue-700",
+  Paid: "bg-blue-50 text-blue-700",
 };
 
 export function StatusBadge({ status }: { status: string }) {
