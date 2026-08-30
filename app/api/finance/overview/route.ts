@@ -23,63 +23,73 @@ export async function GET() {
   const { error } = await requireFinanceViewer();
   if (error) return NextResponse.json({ error }, { status: 403 });
 
-  const [transactions, ar, ap, bank, programs, revenueStreams, budget] = await Promise.all([
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.transactions),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.ar),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.ap),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.bank),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.program),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.revenueStream),
-    getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.budget),
-  ]);
+  try {
+    const [transactions, ar, ap, bank, programs, revenueStreams, budget] = await Promise.all([
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.transactions),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.ar),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.ap),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.bank),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.program),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.revenueStream),
+      getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.budget),
+    ]);
 
-  const income = transactions.filter((t) => t["Transaction Type"] === "Income");
-  const expense = transactions.filter((t) => t["Transaction Type"] === "Expense");
+    const income = transactions.filter((t) => t["Transaction Type"] === "Income");
+    const expense = transactions.filter((t) => t["Transaction Type"] === "Expense");
 
-  const totalRevenue = income.reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0);
-  const totalExpense = expense.reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0);
-  const netProfit = totalRevenue - totalExpense;
+    const totalRevenue = income.reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0);
+    const totalExpense = expense.reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0);
+    const netProfit = totalRevenue - totalExpense;
 
-  const openingBalance = bank.reduce((sum, b) => sum + toNumber(b["Opening Balance (Rp)"]), 0);
-  const cashBalance = openingBalance + netProfit;
+    const openingBalance = bank.reduce((sum, b) => sum + toNumber(b["Opening Balance (Rp)"]), 0);
+    const cashBalance = openingBalance + netProfit;
 
-  const totalArOutstanding = ar.reduce(
-    (sum, r) => sum + (toNumber(r["Amount (Rp)"]) - toNumber(r["Amount Received (Rp)"])),
-    0
-  );
-  const totalApOutstanding = ap
-    .filter((r) => r.Status === "Open" || r.Status === "Overdue")
-    .reduce((sum, r) => sum + toNumber(r["Amount (Rp)"]), 0);
+    const totalArOutstanding = ar.reduce(
+      (sum, r) => sum + (toNumber(r["Amount (Rp)"]) - toNumber(r["Amount Received (Rp)"])),
+      0
+    );
+    const totalApOutstanding = ap
+      .filter((r) => r.Status === "Open" || r.Status === "Overdue")
+      .reduce((sum, r) => sum + toNumber(r["Amount (Rp)"]), 0);
 
-  const revenueByProgram = programs
-    .filter((p) => p["Program ID"])
-    .map((p) => ({
-      program: p.Name,
-      revenue: income
-        .filter((t) => t["Program ID"] === p["Program ID"])
-        .reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0),
-    }));
+    const revenueByProgram = programs
+      .filter((p) => p["Program ID"])
+      .map((p) => ({
+        program: p.Name,
+        revenue: income
+          .filter((t) => t["Program ID"] === p["Program ID"])
+          .reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0),
+      }));
 
-  const revenueByStream = revenueStreams
-    .filter((r) => r["Revenue Stream ID"])
-    .map((r) => ({
-      stream: r["Revenue Stream"],
-      revenue: income
-        .filter((t) => t["Revenue Stream ID"] === r["Revenue Stream ID"])
-        .reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0),
-    }));
+    const revenueByStream = revenueStreams
+      .filter((r) => r["Revenue Stream ID"])
+      .map((r) => ({
+        stream: r["Revenue Stream"],
+        revenue: income
+          .filter((t) => t["Revenue Stream ID"] === r["Revenue Stream ID"])
+          .reduce((sum, t) => sum + toNumber(t["Amount (Rp)"]), 0),
+      }));
 
-  return NextResponse.json({
-    kpi: {
-      totalRevenue,
-      totalExpense,
-      netProfit,
-      cashBalance,
-      totalArOutstanding,
-      totalApOutstanding,
-    },
-    revenueByProgram,
-    revenueByStream,
-    budget: budget.filter((b) => b["Program ID"]),
-  });
+    return NextResponse.json({
+      kpi: {
+        totalRevenue,
+        totalExpense,
+        netProfit,
+        cashBalance,
+        totalArOutstanding,
+        totalApOutstanding,
+      },
+      revenueByProgram,
+      revenueByStream,
+      budget: budget.filter((b) => b["Program ID"]),
+    });
+  } catch (err) {
+    // Sengaja dikirim ke klien (bukan cuma di-log) supaya kelihatan tab/kolom
+    // mana yang bermasalah -- ini dashboard internal, bukan endpoint publik.
+    console.error("GET /api/finance/overview gagal:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Gagal memuat data finance." },
+      { status: 500 }
+    );
+  }
 }
