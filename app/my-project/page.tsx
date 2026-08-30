@@ -7,9 +7,10 @@ import DataTable from "@/components/dashboards/DataTable";
 import VideoEditorBoard from "@/components/dashboards/VideoEditorBoard";
 import BusinessOverviewBoard from "@/components/dashboards/BusinessOverviewBoard";
 import BusinessFlowBoard from "@/components/dashboards/BusinessFlowBoard";
-import CashFlowBoard from "@/components/dashboards/CashFlowBoard";
-import BudgetPlannerBoard from "@/components/dashboards/BudgetPlannerBoard";
-import HutangPiutangBoard from "@/components/dashboards/HutangPiutangBoard";
+import FinanceOverviewBoard from "@/components/dashboards/FinanceOverviewBoard";
+import FinanceTransactionsBoard from "@/components/dashboards/FinanceTransactionsBoard";
+import ARTrackerBoard from "@/components/dashboards/ARTrackerBoard";
+import APTrackerBoard from "@/components/dashboards/APTrackerBoard";
 import SocMedHubBoard from "@/components/dashboards/SocMedHubBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
@@ -104,12 +105,14 @@ export default async function MyPage({
               <BusinessOverviewBoard canEdit={active.canEdit} />
             ) : active?.key === "business_flow" ? (
               <BusinessFlowBoard canEdit={active.canEdit} />
-            ) : active?.key === "finance_cashflow" ? (
-              <CashFlowBoard canEdit={active.canEdit} />
-            ) : active?.key === "finance_budget" ? (
-              <BudgetPlannerBoard canEdit={active.canEdit} />
-            ) : active?.key === "finance_hutang" ? (
-              <HutangPiutangBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_overview" ? (
+              <FinanceOverviewBoard />
+            ) : active?.key === "finance_transactions" ? (
+              <FinanceTransactionsBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_ar" ? (
+              <ARTrackerBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_ap" ? (
+              <APTrackerBoard canEdit={active.canEdit} />
             ) : active?.key === "socmed_hub" ? (
               <SocMedHubBoard canEdit={active.canEdit} />
             ) : (
