@@ -25,7 +25,6 @@ const AKSES_TAMBAHAN_OPTIONS = [
   { value: "admin_posting_dashboard", label: "Dashboard Admin — Siap Post (antrian posting)" },
   { value: "business_overview_dashboard", label: "Business Overview" },
   { value: "flow_business_dashboard", label: "Flow Business (view + komentar)" },
-  { value: "budget_planner_dashboard", label: "Budget Planner (biasanya Kadiv Business)" },
 ];
 
 type User = {
