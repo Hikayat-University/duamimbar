@@ -22,9 +22,10 @@ export const DASHBOARD_ICONS: Record<DashboardKey, LucideIcon> = {
   proyek_graphic_designer: Palette,
   video_editor: Clapperboard,
   admin_posting: Send,
-  finance_cashflow: Wallet,
-  finance_budget: Calculator,
-  finance_hutang: Receipt,
+  finance_overview: LayoutDashboard,
+  finance_transactions: Wallet,
+  finance_ar: Receipt,
+  finance_ap: Calculator,
   business_overview: Building2,
   business_flow: TrendingUp,
 };

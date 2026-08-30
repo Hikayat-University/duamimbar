@@ -13,9 +13,10 @@ export type DashboardKey =
   | "proyek_graphic_designer"
   | "video_editor"
   | "admin_posting"
-  | "finance_cashflow"
-  | "finance_budget"
-  | "finance_hutang"
+  | "finance_overview"
+  | "finance_transactions"
+  | "finance_ar"
+  | "finance_ap"
   | "business_overview"
   | "business_flow";
 
@@ -26,7 +27,7 @@ const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
   script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
   video_editor: ["video_editor"],
-  kadiv_finance: ["finance_cashflow", "finance_budget", "finance_hutang"],
+  kadiv_finance: ["finance_overview", "finance_transactions", "finance_ar", "finance_ap"],
   kadiv_business: ["business_overview", "business_flow"],
 };
 
@@ -47,9 +48,10 @@ export function getAccessibleDashboards(
       "proyek_graphic_designer",
       "video_editor",
       "admin_posting",
-      "finance_cashflow",
-      "finance_budget",
-      "finance_hutang",
+      "finance_overview",
+      "finance_transactions",
+      "finance_ar",
+      "finance_ap",
       "business_overview",
       "business_flow",
     ];
@@ -78,9 +80,6 @@ export function getAccessibleDashboards(
   if (aksesTambahan.includes("flow_business_dashboard")) {
     // Finance hanya view + komentar di Flow Business (final say di Business Manager)
     tambahan.push({ key: "business_flow", canEdit: false });
-  }
-  if (aksesTambahan.includes("budget_planner_dashboard")) {
-    tambahan.push({ key: "finance_budget", canEdit: true });
   }
 
   return [...own, ...tambahan];

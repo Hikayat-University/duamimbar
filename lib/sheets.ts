@@ -124,7 +124,153 @@ export async function updateSheetRowByIndex(
   });
 }
 
-/** Hapus satu baris, dicari berdasarkan nilai di kolom tertentu. */
+/**
+ * Tambah satu baris baru ke akhir tab tertentu dalam satu spreadsheet
+ * (dipakai untuk spreadsheet multi-tab seperti Finance OS: Transactions,
+ * AR Tracker, AP Tracker semuanya tab di satu spreadsheet yang sama).
+ */
+export async function appendSheetRowToTab(
+  spreadsheetId: string,
+  tabName: string,
+  values: (string | number)[]
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const safeTab = tabName.replace(/'/g, "''");
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `'${safeTab}'!A1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [values] },
+  });
+}
+
+/**
+ * Update sebagian kolom pada satu baris di tab tertentu, dicari berdasarkan
+ * nilai di kolom tertentu (mis. cari baris dengan Transaction ID = "TRX-001").
+ * Kolom yang tidak disebut di `updates` tidak akan berubah.
+ */
+export async function updateSheetRowInTab(
+  spreadsheetId: string,
+  tabName: string,
+  matchColumn: string,
+  matchValue: string,
+  updates: Record<string, string>
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const safeTab = tabName.replace(/'/g, "''");
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${safeTab}'!A1:Z1000`,
+  });
+
+  const [header, ...rows] = res.data.values ?? [[]];
+  if (!header) throw new Error("Sheet kosong atau tidak ada header.");
+
+  const matchIndex = header.indexOf(matchColumn);
+  if (matchIndex === -1) throw new Error(`Kolom ${matchColumn} tidak ditemukan.`);
+
+  const rowIndex = rows.findIndex((row) => row[matchIndex] === matchValue);
+  if (rowIndex === -1) throw new Error(`Baris dengan ${matchColumn}=${matchValue} tidak ditemukan.`);
+
+  const currentRow = rows[rowIndex];
+  const updatedRow = header.map((col: string, i: number) =>
+    updates[col] !== undefined ? updates[col] : currentRow[i] ?? ""
+  );
+
+  const sheetRowNumber = rowIndex + 2; // +1 untuk header, +1 karena Sheets 1-indexed
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `'${safeTab}'!A${sheetRowNumber}:Z${sheetRowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [updatedRow] },
+  });
+}
+
+/** Hapus satu baris di tab tertentu, dicari berdasarkan nilai di kolom tertentu. */
+export async function deleteSheetRowInTab(
+  spreadsheetId: string,
+  tabName: string,
+  matchColumn: string,
+  matchValue: string
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const safeTab = tabName.replace(/'/g, "''");
+
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const targetSheet = meta.data.sheets?.find((s) => s.properties?.title === tabName);
+  const gridId = targetSheet?.properties?.sheetId;
+  if (gridId === undefined) throw new Error(`Tab "${tabName}" tidak ditemukan.`);
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${safeTab}'!A1:Z1000`,
+  });
+  const [header, ...rows] = res.data.values ?? [[]];
+  if (!header) throw new Error("Sheet kosong atau tidak ada header.");
+
+  const matchIndex = header.indexOf(matchColumn);
+  if (matchIndex === -1) throw new Error(`Kolom ${matchColumn} tidak ditemukan.`);
+
+  const rowIndex = rows.findIndex((row) => row[matchIndex] === matchValue);
+  if (rowIndex === -1) throw new Error(`Baris dengan ${matchColumn}=${matchValue} tidak ditemukan.`);
+
+  const startIndex = rowIndex + 1; // +1 karena baris header ada di index 0
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: gridId,
+              dimension: "ROWS",
+              startIndex,
+              endIndex: startIndex + 1,
+            },
+          },
+        },
+      ],
+    },
+  });
+}
+
+/** Hapus satu baris di tab tertentu, dicari berdasarkan posisi baris (0-based, tidak termasuk header). */
+export async function deleteSheetRowByIndexInTab(
+  spreadsheetId: string,
+  tabName: string,
+  rowIndex: number
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const targetSheet = meta.data.sheets?.find((s) => s.properties?.title === tabName);
+  const gridId = targetSheet?.properties?.sheetId;
+  if (gridId === undefined) throw new Error(`Tab "${tabName}" tidak ditemukan.`);
+
+  const startIndex = rowIndex + 1; // +1 karena baris header ada di index 0
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: gridId,
+              dimension: "ROWS",
+              startIndex,
+              endIndex: startIndex + 1,
+            },
+          },
+        },
+      ],
+    },
+  });
+}
+
+/** Hapus satu baris, dicari berdasarkan nilai di kolom tertentu (spreadsheet single-tab). */
 export async function deleteSheetRow(sheetId: string, matchColumn: string, matchValue: string) {
   const sheets = google.sheets({ version: "v4", auth: getAuth() });
 

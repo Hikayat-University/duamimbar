@@ -29,20 +29,25 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_SOCMED_KONTEN",
     emptyLabel: "Belum ada konten yang siap diposting.",
   },
-  finance_cashflow: {
-    title: "Cash Flow",
-    sheetEnvVar: "SHEET_ID_FINANCE_CASHFLOW",
+  finance_overview: {
+    title: "Finance Overview",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
+    emptyLabel: "Belum ada data finance tercatat.",
+  },
+  finance_transactions: {
+    title: "Transactions",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
     emptyLabel: "Belum ada transaksi tercatat.",
   },
-  finance_budget: {
-    title: "Budget Planner",
-    sheetEnvVar: "SHEET_ID_FINANCE_BUDGET",
-    emptyLabel: "Belum ada rancangan anggaran.",
+  finance_ar: {
+    title: "AR Tracker",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
+    emptyLabel: "Belum ada piutang tercatat.",
   },
-  finance_hutang: {
-    title: "Hutang Piutang",
-    sheetEnvVar: "SHEET_ID_FINANCE_HUTANG",
-    emptyLabel: "Belum ada catatan hutang/piutang.",
+  finance_ap: {
+    title: "AP Tracker",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
+    emptyLabel: "Belum ada utang tercatat.",
   },
   business_overview: {
     title: "Business Overview",
