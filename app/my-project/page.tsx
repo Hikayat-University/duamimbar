@@ -11,6 +11,7 @@ import FinanceOverviewBoard from "@/components/dashboards/FinanceOverviewBoard";
 import FinanceTransactionsBoard from "@/components/dashboards/FinanceTransactionsBoard";
 import ARTrackerBoard from "@/components/dashboards/ARTrackerBoard";
 import APTrackerBoard from "@/components/dashboards/APTrackerBoard";
+import FinancialStatementsBoard from "@/components/dashboards/FinancialStatementsBoard";
 import SocMedHubBoard from "@/components/dashboards/SocMedHubBoard";
 import ScriptWriterBoard from "@/components/dashboards/ScriptWriterBoard";
 import GraphicDesignerBoard from "@/components/dashboards/GraphicDesignerBoard";
@@ -113,6 +114,8 @@ export default async function MyPage({
               <ARTrackerBoard canEdit={active.canEdit} />
             ) : active?.key === "finance_ap" ? (
               <APTrackerBoard canEdit={active.canEdit} />
+            ) : active?.key === "finance_statements" ? (
+              <FinancialStatementsBoard />
             ) : active?.key === "socmed_hub" ? (
               <SocMedHubBoard canEdit={active.canEdit} />
             ) : (
