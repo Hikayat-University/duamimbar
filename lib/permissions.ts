@@ -18,18 +18,19 @@ export type DashboardKey =
   | "finance_ar"
   | "finance_ap"
   | "finance_statements"
+  | "budget_requests"
   | "business_overview"
   | "business_flow";
 
 /** Dashboard bawaan tiap role di halaman My Page (lihat PRD Bagian 3). */
 const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
   head_director: [], // Projects sekarang halaman top-level /projects, bukan tab di sini
-  kadiv_socmed: ["socmed_hub"],
+  kadiv_socmed: ["socmed_hub", "budget_requests"],
   script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
   video_editor: ["video_editor"],
-  kadiv_finance: ["finance_overview", "finance_transactions", "finance_ar", "finance_ap", "finance_statements"],
-  kadiv_business: ["business_overview", "business_flow"],
+  kadiv_finance: ["finance_overview", "finance_transactions", "finance_ar", "finance_ap", "finance_statements", "budget_requests"],
+  kadiv_business: ["business_overview", "business_flow", "budget_requests"],
 };
 
 /**
@@ -54,6 +55,7 @@ export function getAccessibleDashboards(
       "finance_ar",
       "finance_ap",
       "finance_statements",
+      "budget_requests",
       "business_overview",
       "business_flow",
     ];

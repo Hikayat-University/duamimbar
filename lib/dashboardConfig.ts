@@ -54,6 +54,11 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_FINANCE_OS",
     emptyLabel: "Belum ada data jurnal.",
   },
+  budget_requests: {
+    title: "Budget Requests",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
+    emptyLabel: "Belum ada pengajuan anggaran.",
+  },
   business_overview: {
     title: "Business Overview",
     sheetEnvVar: "SHEET_ID_BUSINESS_OVERVIEW",

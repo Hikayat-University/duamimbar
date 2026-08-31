@@ -13,6 +13,7 @@ import {
   Receipt,
   Building2,
   TrendingUp,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const DASHBOARD_ICONS: Record<DashboardKey, LucideIcon> = {
   finance_ar: Receipt,
   finance_ap: Calculator,
   finance_statements: FileText,
+  budget_requests: ClipboardCheck,
   business_overview: Building2,
   business_flow: TrendingUp,
 };
