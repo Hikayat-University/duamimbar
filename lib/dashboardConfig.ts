@@ -49,6 +49,11 @@ export const DASHBOARD_CONFIG: Record<
     sheetEnvVar: "SHEET_ID_FINANCE_OS",
     emptyLabel: "Belum ada utang tercatat.",
   },
+  finance_statements: {
+    title: "Financial Statements",
+    sheetEnvVar: "SHEET_ID_FINANCE_OS",
+    emptyLabel: "Belum ada data jurnal.",
+  },
   business_overview: {
     title: "Business Overview",
     sheetEnvVar: "SHEET_ID_BUSINESS_OVERVIEW",

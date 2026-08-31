@@ -17,6 +17,7 @@ export type DashboardKey =
   | "finance_transactions"
   | "finance_ar"
   | "finance_ap"
+  | "finance_statements"
   | "business_overview"
   | "business_flow";
 
@@ -27,7 +28,7 @@ const DEFAULT_DASHBOARDS: Record<Role, DashboardKey[]> = {
   script_writer: ["proyek_script_writer", "admin_posting"],
   graphic_designer: ["proyek_graphic_designer"],
   video_editor: ["video_editor"],
-  kadiv_finance: ["finance_overview", "finance_transactions", "finance_ar", "finance_ap"],
+  kadiv_finance: ["finance_overview", "finance_transactions", "finance_ar", "finance_ap", "finance_statements"],
   kadiv_business: ["business_overview", "business_flow"],
 };
 
@@ -52,6 +53,7 @@ export function getAccessibleDashboards(
       "finance_transactions",
       "finance_ar",
       "finance_ap",
+      "finance_statements",
       "business_overview",
       "business_flow",
     ];

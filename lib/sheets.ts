@@ -144,6 +144,24 @@ export async function appendSheetRowToTab(
   });
 }
 
+/** Tambah beberapa baris sekaligus ke akhir tab tertentu dalam satu panggilan
+ * API -- dipakai buat posting jurnal (2+ baris debit/kredit) supaya nggak
+ * ada baris nyangkut sebelah kalau salah satu append gagal di tengah jalan. */
+export async function appendSheetRowsToTab(
+  spreadsheetId: string,
+  tabName: string,
+  rows: (string | number)[][]
+) {
+  const sheets = google.sheets({ version: "v4", auth: getAuth() });
+  const safeTab = tabName.replace(/'/g, "''");
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `'${safeTab}'!A1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: rows },
+  });
+}
+
 /**
  * Update sebagian kolom pada satu baris di tab tertentu, dicari berdasarkan
  * nilai di kolom tertentu (mis. cari baris dengan Transaction ID = "TRX-001").

@@ -26,6 +26,7 @@ export const DASHBOARD_ICONS: Record<DashboardKey, LucideIcon> = {
   finance_transactions: Wallet,
   finance_ar: Receipt,
   finance_ap: Calculator,
+  finance_statements: FileText,
   business_overview: Building2,
   business_flow: TrendingUp,
 };

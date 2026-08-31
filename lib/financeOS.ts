@@ -19,6 +19,7 @@ export const FINANCE_TABS = {
   ap: "AP Tracker",
   budget: "Budget vs Actual",
   dashboard: "Dashboard",
+  journal: "Journal Entries",
 } as const;
 
 export const TRANSACTION_COLUMNS = [
@@ -50,9 +51,14 @@ export const AR_COLUMNS = [
   "Amount Received (Rp)",
   "Status",
   "Follow-up Date",
+  "Account Code",
+  "Bank/Cash Account",
 ] as const;
 // Catatan: "Outstanding (Rp)" sengaja nggak ada di sini -- itu kolom formula
 // (=G-H) di sheet aslinya, biar konsisten jangan pernah ditimpa dari app.
+// "Account Code" & "Bank/Cash Account" adalah 2 kolom TAMBAHAN yang harus
+// ditambahkan manual di ujung sheet AR Tracker (kolom K & L) -- dipakai
+// buat nentuin akun GL yang tepat waktu auto-posting jurnal.
 
 export const AP_COLUMNS = [
   "Vendor",
@@ -64,6 +70,21 @@ export const AP_COLUMNS = [
   "Approval",
   "Payment Date",
   "Status",
+  "Account Code",
+  "Bank/Cash Account",
+] as const;
+// "Account Code" & "Bank/Cash Account" adalah 2 kolom TAMBAHAN di ujung
+// sheet AP Tracker (kolom J & K) -- sama alasannya kayak AR di atas.
+
+export const JOURNAL_COLUMNS = [
+  "Journal ID",
+  "Date",
+  "Source",
+  "Source Ref",
+  "Account Code",
+  "Debit (Rp)",
+  "Credit (Rp)",
+  "Description",
 ] as const;
 
 /** Cari nomor urut TRX- berikutnya berdasarkan ID tertinggi yang sudah ada. */
