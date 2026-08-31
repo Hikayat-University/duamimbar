@@ -22,6 +22,8 @@ type ApRow = {
 type Master = {
   program: { "Program ID": string; Name: string }[];
   vendor: { "Vendor ID": string; "Vendor Name": string; Category: string }[];
+  coa: { "Account Code": string; "Account Name": string; Class: string }[];
+  bank: { "Account ID": string; "Account Name": string }[];
 };
 
 const EMPTY_FORM = {
@@ -34,6 +36,8 @@ const EMPTY_FORM = {
   Approval: "Pending",
   "Payment Date": "",
   Status: "Open",
+  "Account Code": "",
+  "Bank/Cash Account": "",
 };
 
 export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
@@ -45,6 +49,9 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [updatingIndex, setUpdatingIndex] = useState<number | null>(null);
+  const [payRow, setPayRow] = useState<ApRow | null>(null);
+  const [payBank, setPayBank] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -85,6 +92,10 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
 
     setSaving(false);
     setFormOpen(false);
+    const data = await res.json().catch(() => ({}));
+    if (data.journalWarning) {
+      alert(`Utang tersimpan, tapi: ${data.journalWarning}`);
+    }
     load();
   }
 
@@ -106,6 +117,42 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rowIndex }),
     });
+    load();
+  }
+
+  function handleStatusChange(row: ApRow, status: string) {
+    if (status === "Paid") {
+      setPayRow(row);
+      setPayBank("");
+      setPayError(null);
+      return;
+    }
+    updateField(row, { Status: status });
+  }
+
+  async function submitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!payRow) return;
+    if (!payBank) {
+      setPayError("Pilih Bank/Cash Account sumber pembayaran.");
+      return;
+    }
+
+    const res = await fetch("/api/finance/ap", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rowIndex: payRow.rowIndex,
+        Status: "Paid",
+        "Bank/Cash Account": payBank,
+        "Payment Date": new Date().toISOString().slice(0, 10),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (data.journalWarning) setPayError(data.journalWarning);
+
+    setPayRow(null);
     load();
   }
 
@@ -158,7 +205,7 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
                   </select>
                   <select
                     value={r.Status}
-                    onChange={(e) => updateField(r, { Status: e.target.value })}
+                    onChange={(e) => handleStatusChange(r, e.target.value)}
                     disabled={updatingIndex === r.rowIndex}
                     className="text-xs rounded-lg border border-denim-100 px-2 py-1 outline-none focus:border-denim-500 bg-white disabled:opacity-50"
                   >
@@ -228,6 +275,22 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
               className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
 
+            <select
+              required
+              value={form["Account Code"]}
+              onChange={(e) => setForm({ ...form, "Account Code": e.target.value })}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+            >
+              <option value="">Pilih Account Code (buat jurnal Expense)</option>
+              {master.coa
+                .filter((c) => c.Class === "Direct Cost" || c.Class === "Operating Expense")
+                .map((c) => (
+                  <option key={c["Account Code"]} value={c["Account Code"]}>
+                    {c["Account Code"]} — {c["Account Name"]}
+                  </option>
+                ))}
+            </select>
+
             <label className="text-xs text-muted block -mb-2">Jatuh tempo</label>
             <input
               required
@@ -262,6 +325,48 @@ export default function APTrackerBoard({ canEdit }: { canEdit: boolean }) {
                 className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white disabled:opacity-50"
               >
                 {saving ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {payRow && master && (
+        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20 overflow-y-auto">
+          <form
+            onSubmit={submitPayment}
+            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3 my-8"
+          >
+            <h2 className="font-display text-lg text-denim-700">Konfirmasi Pembayaran</h2>
+            <p className="text-sm text-muted">
+              {payRow.Vendor} · {payRow["Bill/Reference"]} · Rp{" "}
+              {Number(payRow["Amount (Rp)"] || 0).toLocaleString("id-ID")}
+            </p>
+
+            <select
+              required
+              value={payBank}
+              onChange={(e) => setPayBank(e.target.value)}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+            >
+              <option value="">Dibayar dari Bank/Cash Account mana?</option>
+              {master.bank.map((b) => (
+                <option key={b["Account ID"]} value={b["Account ID"]}>{b["Account Name"]}</option>
+              ))}
+            </select>
+
+            {payError && <p className="text-sm text-red-600">{payError}</p>}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPayRow(null)}
+                className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900"
+              >
+                Batal
+              </button>
+              <button type="submit" className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white">
+                Tandai Lunas
               </button>
             </div>
           </form>

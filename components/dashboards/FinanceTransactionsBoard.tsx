@@ -7,11 +7,12 @@ const TRANSACTION_TYPES = [
   "Income",
   "Expense",
   "Transfer",
-  "Payment",
   "Reimbursement",
-  "Accounts Receivable",
-  "Accounts Payable",
 ];
+// Catatan: "Accounts Receivable" & "Accounts Payable" sengaja DIHAPUS dari
+// sini -- alur piutang/utang sekarang lewat AR Tracker & AP Tracker (biar
+// selalu ke-jurnal otomatis + ke-track follow-up-nya). Kalau dipilih di
+// sini, nggak ada auto-journal buat 2 tipe itu (cuma Income/Expense).
 
 type Transaction = {
   "Transaction ID": string;
@@ -102,6 +103,10 @@ export default function FinanceTransactionsBoard({ canEdit }: { canEdit: boolean
 
     setSaving(false);
     setFormOpen(false);
+    const data = await res.json().catch(() => ({}));
+    if (data.journalWarning) {
+      alert(`Transaksi tersimpan, tapi: ${data.journalWarning}`);
+    }
     load();
   }
 

@@ -24,6 +24,8 @@ type Master = {
   program: { "Program ID": string; Name: string }[];
   revenueStream: { "Revenue Stream ID": string; "Revenue Stream": string }[];
   client: { "Client ID": string; "Client Name": string }[];
+  coa: { "Account Code": string; "Account Name": string; Class: string }[];
+  bank: { "Account ID": string; "Account Name": string }[];
 };
 
 const EMPTY_FORM = {
@@ -37,6 +39,8 @@ const EMPTY_FORM = {
   "Amount Received (Rp)": "0",
   Status: "Open",
   "Follow-up Date": "",
+  "Account Code": "",
+  "Bank/Cash Account": "",
 };
 
 export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
@@ -48,6 +52,10 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [updatingIndex, setUpdatingIndex] = useState<number | null>(null);
+  const [payRow, setPayRow] = useState<ArRow | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payBank, setPayBank] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -88,6 +96,10 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
 
     setSaving(false);
     setFormOpen(false);
+    const data = await res.json().catch(() => ({}));
+    if (data.journalWarning) {
+      alert(`Piutang tersimpan, tapi: ${data.journalWarning}`);
+    }
     load();
   }
 
@@ -109,6 +121,45 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rowIndex }),
     });
+    load();
+  }
+
+  function openPay(row: ArRow) {
+    setPayRow(row);
+    setPayAmount("");
+    setPayBank("");
+    setPayError(null);
+  }
+
+  async function submitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!payRow) return;
+    const additional = Number(payAmount || 0);
+    if (additional <= 0) {
+      setPayError("Nominal pembayaran harus lebih dari 0.");
+      return;
+    }
+    if (!payBank) {
+      setPayError("Pilih Bank/Cash Account tujuan pembayaran.");
+      return;
+    }
+
+    const newTotal = Number(payRow["Amount Received (Rp)"] || 0) + additional;
+    const res = await fetch("/api/finance/ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rowIndex: payRow.rowIndex,
+        "Amount Received (Rp)": newTotal,
+        "Bank/Cash Account": payBank,
+        Status: newTotal >= Number(payRow["Amount (Rp)"] || 0) ? "Paid" : "Partial",
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (data.journalWarning) setPayError(data.journalWarning);
+
+    setPayRow(null);
     load();
   }
 
@@ -159,6 +210,11 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
+                  {Number(r["Outstanding (Rp)"] || 0) > 0 && (
+                    <button onClick={() => openPay(r)} className="text-xs text-denim-600 underline">
+                      Catat Pembayaran
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(r.rowIndex)}
                     className="text-xs text-red-600 underline ml-auto"
@@ -242,6 +298,20 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
               className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
             />
 
+            <select
+              required
+              value={form["Account Code"]}
+              onChange={(e) => setForm({ ...form, "Account Code": e.target.value })}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+            >
+              <option value="">Pilih Account Code (buat jurnal Revenue)</option>
+              {master.coa.filter((c) => c.Class === "Revenue").map((c) => (
+                <option key={c["Account Code"]} value={c["Account Code"]}>
+                  {c["Account Code"]} — {c["Account Name"]}
+                </option>
+              ))}
+            </select>
+
             <input
               required
               type="number"
@@ -267,6 +337,60 @@ export default function ARTrackerBoard({ canEdit }: { canEdit: boolean }) {
                 className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white disabled:opacity-50"
               >
                 {saving ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {payRow && master && (
+        <div className="fixed inset-0 bg-denim-900/40 flex items-center justify-center p-5 z-20 overflow-y-auto">
+          <form
+            onSubmit={submitPayment}
+            className="bg-white rounded-signature p-5 w-full max-w-sm space-y-3 my-8"
+          >
+            <h2 className="font-display text-lg text-denim-700">Catat Pembayaran</h2>
+            <p className="text-sm text-muted">
+              {payRow.Client} · {payRow["Contract/Invoice ID"]} · Outstanding Rp{" "}
+              {Number(payRow["Outstanding (Rp)"] || 0).toLocaleString("id-ID")}
+            </p>
+
+            <input
+              required
+              type="number"
+              placeholder="Nominal yang diterima sekarang (Rp)"
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500"
+            />
+
+            <select
+              required
+              value={payBank}
+              onChange={(e) => setPayBank(e.target.value)}
+              className="w-full rounded-lg border border-denim-100 px-3 py-2 text-sm outline-none focus:border-denim-500 bg-white"
+            >
+              <option value="">Masuk ke Bank/Cash Account mana?</option>
+              {master.bank.map((b) => (
+                <option key={b["Account ID"]} value={b["Account ID"]}>{b["Account Name"]}</option>
+              ))}
+            </select>
+
+            {payError && <p className="text-sm text-red-600">{payError}</p>}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPayRow(null)}
+                className="flex-1 text-sm py-2 rounded-lg border border-denim-100 text-denim-900"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 text-sm py-2 rounded-lg bg-denim-700 text-white"
+              >
+                Simpan
               </button>
             </div>
           </form>
