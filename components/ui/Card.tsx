@@ -49,6 +49,7 @@ const STATUS_TONE: Record<string, string> = {
   Berjalan: "bg-amber-50 text-amber-700",
   Pending: "bg-amber-50 text-amber-700",
   Partial: "bg-amber-50 text-amber-700",
+  "Menunggu Head Director": "bg-amber-50 text-amber-700",
 
   // Hijau — progres baik / menunggu keputusan / arus positif
   Review: "bg-emerald-50 text-emerald-700",
