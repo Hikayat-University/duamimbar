@@ -13,6 +13,7 @@ import {
   requireKadivFinance,
   requireFinanceViewer,
 } from "@/lib/financeOS";
+import { postJournal, resolveCashCoaCode } from "@/lib/journal";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,53 @@ export async function POST(req: NextRequest) {
   });
 
   await appendSheetRowToTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.transactions, values);
+
+  // Auto-journal cuma buat Income & Expense -- Transfer/Payment/Reimbursement
+  // dan Accounts Receivable/Payable (yang sekarang lewat AR/AP Tracker,
+  // bukan sini) belum di-auto-post, perlu jurnal manual dulu.
+  const type = body["Transaction Type"];
+  const amount = Number(body["Amount (Rp)"] || 0);
+  if ((type === "Income" || type === "Expense") && amount > 0) {
+    try {
+      const [bank, coa] = await Promise.all([
+        getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.bank),
+        getSheetRowsByTab(FINANCE_OS_SHEET_ID, FINANCE_TABS.coa),
+      ]);
+      const cashCode = resolveCashCoaCode(body["Bank/Cash Account"], bank as any, coa as any);
+      const accountCode = body["Account Code"];
+
+      await postJournal({
+        date: body.Date,
+        source: "Transaction",
+        sourceRef: id,
+        description: body.Description || type,
+        lines:
+          type === "Income"
+            ? [
+                { accountCode: cashCode, debit: amount },
+                { accountCode, credit: amount },
+              ]
+            : [
+                { accountCode, debit: amount },
+                { accountCode: cashCode, credit: amount },
+              ],
+      });
+    } catch (journalError) {
+      // Transaksi sudah kesimpan -- jurnal gagal jangan bikin whole request
+      // gagal (transaksinya tetap valid & bisa dijurnal manual belakangan),
+      // tapi kasih tau kliennya biar nggak diam-diam salah.
+      console.error("Auto-journal gagal untuk transaksi", id, journalError);
+      return NextResponse.json({
+        success: true,
+        id,
+        journalWarning:
+          journalError instanceof Error
+            ? journalError.message
+            : "Transaksi tersimpan, tapi jurnal otomatis gagal dibuat.",
+      });
+    }
+  }
+
   return NextResponse.json({ success: true, id });
 }
 
