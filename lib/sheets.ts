@@ -9,7 +9,7 @@ function getAuth() {
 }
 
 /** Baca semua baris sebuah sheet (baris pertama dianggap header). */
-export async function getSheetRows(sheetId: string, range = "A1:Z1000") {
+export async function getSheetRows(sheetId: string, range = "A:Z") {
   const sheets = google.sheets({ version: "v4", auth: getAuth() });
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
@@ -31,7 +31,7 @@ export async function getSheetRows(sheetId: string, range = "A1:Z1000") {
  */
 export async function getSheetRowsByTab(spreadsheetId: string, tabName: string) {
   const safeTab = tabName.replace(/'/g, "''");
-  return getSheetRows(spreadsheetId, `'${safeTab}'!A1:Z1000`);
+  return getSheetRows(spreadsheetId, `'${safeTab}'!A:Z`);
 }
 
 /** Tambah satu baris baru ke akhir sheet. */
@@ -59,7 +59,7 @@ export async function updateSheetRow(
   const sheets = google.sheets({ version: "v4", auth: getAuth() });
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "A1:Z1000",
+    range: "A:Z",
   });
 
   const [header, ...rows] = res.data.values ?? [[]];
@@ -102,7 +102,7 @@ export async function updateSheetRowByIndex(
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `'${safeTab}'!A1:Z1000`,
+    range: `'${safeTab}'!A:Z`,
   });
 
   const [header, ...rows] = res.data.values ?? [[]];
@@ -179,7 +179,7 @@ export async function updateSheetRowInTab(
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `'${safeTab}'!A1:Z1000`,
+    range: `'${safeTab}'!A:Z`,
   });
 
   const [header, ...rows] = res.data.values ?? [[]];
@@ -222,7 +222,7 @@ export async function deleteSheetRowInTab(
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `'${safeTab}'!A1:Z1000`,
+    range: `'${safeTab}'!A:Z`,
   });
   const [header, ...rows] = res.data.values ?? [[]];
   if (!header) throw new Error("Sheet kosong atau tidak ada header.");
@@ -298,7 +298,7 @@ export async function deleteSheetRow(sheetId: string, matchColumn: string, match
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "A1:Z1000",
+    range: "A:Z",
   });
   const [header, ...rows] = res.data.values ?? [[]];
   if (!header) throw new Error("Sheet kosong atau tidak ada header.");

@@ -10,12 +10,12 @@ import {
   CalendarDays,
   type LucideIcon,
 } from "lucide-react";
-import { SIGNUP_ROLES, divisiForRole } from "@/lib/signupRoles";
+import { ASSIGNABLE_ROLES, divisiForRole } from "@/lib/signupRoles";
 import { getAccessibleDashboards, type Role } from "@/lib/permissions";
 
 const ROLE_OPTIONS = [
   { value: "head_director", label: "Head Director" },
-  ...SIGNUP_ROLES.map((r) => ({ value: r.value, label: r.label })),
+  ...ASSIGNABLE_ROLES.map((r) => ({ value: r.value, label: r.label })),
 ];
 
 const AKSES_TAMBAHAN_OPTIONS = [

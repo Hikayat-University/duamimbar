@@ -128,7 +128,7 @@ export default function SignupPage() {
               ))}
             </select>
             <p className="text-xs text-muted mt-1">
-              Head Director tidak tersedia di sini — dibuatkan manual oleh direksi.
+              Kepala Divisi &amp; Head Director tidak tersedia di sini. Daftar sebagai staf dulu, nanti role-nya diganti Head Director.
             </p>
           </div>
 

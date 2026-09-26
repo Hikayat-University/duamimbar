@@ -24,10 +24,24 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const profile = await getUserProfile();
+  if (!profile) return NextResponse.json({ error: "Belum login." }, { status: 401 });
+
+  // Sama dengan aturan edit-semua di PATCH: cuma Kadiv SocMed (via
+  // akses_tambahan) yang boleh bikin proyek editor baru.
+  const bolehEditSemua =
+    profile.role === "kadiv_socmed" &&
+    (profile.akses_tambahan ?? []).includes("video_editor_dashboard");
+  if (!bolehEditSemua) {
+    return NextResponse.json({ error: "Tidak punya akses." }, { status: 403 });
+  }
+
   const body = await req.json();
-  const values = COLUMNS.map((col) =>
-    col.startsWith("id") ? crypto.randomUUID() : body[col] ?? ""
-  );
+  const values = COLUMNS.map((col) => {
+    if (col === "id_proyek_editor") return crypto.randomUUID();
+    if (col === "last_updated") return new Date().toISOString();
+    return body[col] ?? "";
+  });
   await appendSheetRow(SHEET_ID, values);
   return NextResponse.json({ success: true });
 }
