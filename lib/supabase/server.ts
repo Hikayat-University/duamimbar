@@ -23,32 +23,19 @@ export function createClient() {
   );
 }
 
-/** Ambil profil user (role, divisi, akses_tambahan, avatar_url, bio) dari tabel public.users. */
-export async function getUserProfile() {
+/**
+ * Cek siapa yang login dan apakah emailnya terdaftar di tabel
+ * anggota_studio (yang boleh mengelola data produksi).
+ */
+export async function getStudioAccess() {
   const supabase = createClient();
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser();
+  if (!user) return { user: null, isAnggota: false };
 
-  if (authError) {
-    console.error("getUserProfile: auth.getUser() error:", authError.message);
-  }
-  if (!user) return null;
+  const { data, error } = await supabase.rpc("is_anggota_studio");
+  if (error) console.error("getStudioAccess: is_anggota_studio gagal:", error.message);
 
-  const { data: profile, error: profileError } = await supabase
-    .from("users")
-    .select("id, nama, email, role, divisi, akses_tambahan, avatar_url, bio, created_at")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError) {
-    console.error(
-      `getUserProfile: gagal ambil profil untuk user id=${user.id}, email=${user.email}. Error:`,
-      profileError.message,
-      profileError.details
-    );
-  }
-
-  return profile;
+  return { user, isAnggota: data === true };
 }

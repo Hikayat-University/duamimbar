@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard Tim — Duamimbar",
-  description: "Dashboard internal untuk memantau & evaluasi kerja tim.",
+  title: "Duamimbar Produksi",
+  description: "Portofolio karya media Divisi Produksi Duamimbar.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

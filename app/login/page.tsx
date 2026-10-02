@@ -26,15 +26,15 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/home");
+    router.push("/studio");
     router.refresh();
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-3xl text-denim-700 mb-1">Dashboard Tim</h1>
-        <p className="text-muted text-sm mb-8">Masuk untuk memantau kerja timmu.</p>
+        <h1 className="font-display text-3xl text-denim-700 mb-1">Studio Produksi</h1>
+        <p className="text-muted text-sm mb-8">Masuk untuk mencatat laporan, proyek, dan jadwal produksi.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -77,9 +77,8 @@ export default function LoginPage() {
         </form>
 
         <p className="text-xs text-muted mt-6">
-          Belum punya akun?{" "}
-          <Link href="/signup" className="text-denim-700 underline">
-            Daftar di sini
+          <Link href="/" className="text-denim-700 underline">
+            Kembali ke portofolio
           </Link>
         </p>
       </div>

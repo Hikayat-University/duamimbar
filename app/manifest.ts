@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Duamimbar — Dashboard Tim",
+    name: "Duamimbar Studio Produksi",
     short_name: "Duamimbar",
-    description: "Dashboard internal untuk memantau & evaluasi kerja tim.",
-    start_url: "/home",
+    description: "Laporan, proyek, dan jadwal Divisi Produksi Duamimbar.",
+    start_url: "/studio",
     display: "standalone",
     background_color: "#F6F8FA",
     theme_color: "#1A2E95",
